@@ -143,3 +143,10 @@ Vitest unit tests for pure functions only: banned-term matcher, disclaimer check
   - **Hardening added:** DB trigger `kit_rules_draft_only` — rule mutations against a published version now fail at the database level (verified: admin REST insert into published v1 → `P0001` "published and immutable"), not just in the app layer. Seed restructured to insert rules as draft, then publish.
   - Gotchas recorded: `psql -c` with multiple statements = one transaction (an error rolls back the whole batch); `auth.users` also has a `role` column (qualify `p.role` in joins).
   - Remaining for M0 done-when: Vercel live URL (needs his GitHub/Vercel accounts, or a Vercel token). Next: M3 upload + status.
+
+- **23 Oct 2026 — M3 complete and verified end to end on the local stack.**
+  - Upload flow (context + text/image, direct-to-storage, alt text required for images), `/items` list, `/items/[id]` detail with signed-image preview and check history, `POST /api/checks`, and `src/lib/checks/run.ts` pipeline shell (M4/M6 slots marked).
+  - Live evidence: creator REST insert (RLS-scoped) → image uploaded to private bucket (200) → check API → `checks done`, items `in_review`; `/items` + `/items/[id]` render for creator; outsider POST /api/checks on creator's item → 404 (RLS through the app API); signed image preview renders.
+  - **Bug caught by verification:** storage keys were built as `content/<ws>/…` inside a bucket already named `content` — browser uploads would have violated the workspace RLS policy. Fixed to `<ws>/<item>/<file>`; convention documented here: `storage_path` is the key INSIDE the bucket.
+  - Tooling notes: PostgREST 13 defaults to `return=minimal` (send `Prefer: return=representation` to get inserted rows); React SSR interleaves `<!-- -->` between JSX expressions (grep rendered pages for contiguous strings only); bash `UID` is readonly.
+  - Next: M4 deterministic checkers (banned terms, disclaimer, palette, alt-text presence) against the seeded-error matrix in docs/acceptance.md.
