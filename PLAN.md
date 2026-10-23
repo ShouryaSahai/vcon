@@ -179,3 +179,10 @@ Vitest unit tests for pure functions only: banned-term matcher, disclaimer check
   - Live matrix run: caption with "100% natural" + "AMAZING!!!" + "Glow Naturals" → 3 AI findings (Disallowed Claim Used → C-12 → reviewer; tone; terminology), each confidence 0.95, 3.0s; clean caption → 0 findings; claim finding appears in reviewer /review. A 503 high-demand spike during testing degraded to needs_human exactly as designed.
   - **Full seeded-error matrix now green: E1–E7 all detected with correct citations; negative controls clean.**
   - Remaining: M9 (full acceptance run + backup recording), Vercel live URL, Round-3 items (CIEDE2000, insights view, accessibility checks).
+
+- **24 Oct 2026 — M9 acceptance run PASSED (Round 2 build functionally complete).**
+  - Fresh-DB full run via real surfaces: upload → 6 findings (E1/E2/E3/E7 + E4/E5, all cited, 0 uncited) → creator accept/reject → reviewer claim approval (override with reason) → resubmission (linked child, re-checked 0 findings) → approver approved; on-palette sage image approved as second proof. Creator-approve refused (303).
+  - Measures (docs/acceptance.md §5): **7/7 seeded errors detected, 0 false flags, all findings cited**; checks 8–25 ms deterministic, 0.8–4.5 s with AI.
+  - Product fix from the rehearsal: mixed creator+reviewer findings keep the item at needs_changes while creator work is open (previous logic jumped to in_review and blocked the fix loop).
+  - Harness lessons: server actions drivable via rendered `$ACTION_ID_`/`$ACTION_REF_` fields; pick action ids by FORM CONTENT (lexicographic order swapped accept/reject); the append-only decision design correctly refused re-deciding — immutable by construction.
+  - Remaining outside code: Vercel live URL (his GitHub/Vercel) + backup screen recording (his task; script = docs/acceptance.md §1). Round 3 backlog: measured evaluation report, insights view, accessibility checks, CIEDE2000.
