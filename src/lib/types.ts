@@ -35,6 +35,29 @@ export const RULE_TYPE_LABELS: Record<RuleType, string> = {
 
 export const SEVERITIES = ["low", "medium", "high"] as const;
 
+import type { ContentStatus, DecisionAction } from "@/lib/db-types";
+
+export const STATUS_VARIANT: Record<
+  ContentStatus,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
+  uploaded: "outline",
+  checking: "secondary",
+  needs_changes: "destructive",
+  in_review: "default",
+  approved: "secondary",
+  returned: "destructive",
+  failed: "destructive",
+};
+
+export const DECISION_LABELS: Record<DecisionAction, string> = {
+  approved: "Approved",
+  returned: "Returned — changes requested",
+  fix_accepted: "Fix accepted",
+  fix_rejected: "Fix rejected",
+  override: "Flag overridden",
+};
+
 export interface Profile {
   id: string;
   workspace_id: string | null;
