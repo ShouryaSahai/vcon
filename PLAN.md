@@ -171,3 +171,11 @@ Vitest unit tests for pure functions only: banned-term matcher, disclaimer check
   - Item page: creators only see accept/reject on findings routed to them.
   - Verified live: synthetic AI claim finding citing C-12 appears in reviewer's /review; creator's /review gated; creator sees the claim finding read-only (0 fix buttons, "AI check" badge). Creator-cannot-approve verified in the M5 round.
   - Remaining: M6 (needs Gemini API key for the live run — build with stubbed-model tests first), M9 (full acceptance run + backup recording), Vercel live URL.
+
+- **24 Oct 2026 — M6 complete: grounded AI checks verified live (E2/E6/E7).**
+  - Key provided by Shourya, stored only in git-ignored `.env.local` (GEMINI_API_KEY + GEMINI_MODEL).
+  - `runAiChecks`: model judges approved_claims/tone/terminology against this kit's rules only; citation enforced in code — uncited findings → `needs_human`, no kit_rule_id, routed to reviewer; schema-invalid output retried once (1.5s backoff), then a single "AI check could not complete" needs_human finding. 7 new unit tests (33 total).
+  - Model/transport findings (recorded for the report): `gemini-2.5-flash` retired for new users; the AI SDK's `generateObject` (deprecated) hung on Gemini 3.x thinking models for minutes; production caller is now raw Gemini REST with `responseSchema`, `thinkingBudget: 0`, 45s abort, model via `GEMINI_MODEL` (default `gemini-3.5-flash`, 2–3s per call).
+  - Live matrix run: caption with "100% natural" + "AMAZING!!!" + "Glow Naturals" → 3 AI findings (Disallowed Claim Used → C-12 → reviewer; tone; terminology), each confidence 0.95, 3.0s; clean caption → 0 findings; claim finding appears in reviewer /review. A 503 high-demand spike during testing degraded to needs_human exactly as designed.
+  - **Full seeded-error matrix now green: E1–E7 all detected with correct citations; negative controls clean.**
+  - Remaining: M9 (full acceptance run + backup recording), Vercel live URL, Round-3 items (CIEDE2000, insights view, accessibility checks).
