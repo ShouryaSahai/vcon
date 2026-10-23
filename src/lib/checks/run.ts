@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { ContentItem, Database, FindingInsert, KitRule } from "@/lib/db-types";
 
+import { runAiChecks, AI_RULE_TYPES } from "./ai";
 import {
   checkAltText,
   checkBannedTerms,
@@ -65,8 +66,17 @@ export async function runChecks(
     }
   }
 
-  // TODO(M6): AI findings + citation enforcement (no valid kit_rule_id →
-  // needs_human), schema-validated model output, one retry.
+  // TODO(M6): AI findings + citation enforcement — shipped in runAiChecks.
+  const aiRules = (rules ?? []).filter((r) =>
+    (AI_RULE_TYPES as readonly string[]).includes(r.rule_type),
+  );
+  if (aiRules.length > 0) {
+    try {
+      seeds.push(...(await runAiChecks(aiRules, item)));
+    } catch (error) {
+      console.error("[checks] AI checker failed:", error);
+    }
+  }
 
   const findings: FindingInsert[] = seeds.map((seed) => {
     const rule = (rules ?? []).find((r) => r.id === seed.kit_rule_id);
@@ -75,8 +85,10 @@ export async function runChecks(
       ...seed,
       content_item_id: item.id,
       check_id: checkId,
-      assigned_to_role: routing.assigned_to_role,
-      needs_human: routing.needs_human,
+      // Uncited AI findings keep their forced human-review routing.
+      assigned_to_role:
+        seed.kit_rule_id === null ? "reviewer" : routing.assigned_to_role,
+      needs_human: routing.needs_human || seed.needs_human === true,
     };
   });
 
