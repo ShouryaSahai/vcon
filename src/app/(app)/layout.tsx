@@ -44,8 +44,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/" className="text-lg font-semibold tracking-tight text-slate-900">
             Vcon
           </Link>
-          <div className="flex items-center gap-3 text-sm">
-            {profile ? (
+          <div className="flex items-center gap-4 text-sm">
+            <nav className="flex items-center gap-3">
+              <Link href="/" className="text-slate-600 hover:text-slate-900">Home</Link>
+              <Link href="/upload" className="text-slate-600 hover:text-slate-900">Upload</Link>
+              <Link href="/items" className="text-slate-600 hover:text-slate-900">Items</Link>
+              <Link href="/kit" className="text-slate-600 hover:text-slate-900">Kit</Link>
+            </nav>
+            <div className="flex items-center gap-3">
+              {profile ? (
               <>
                 <span className="text-slate-700">{profile.full_name || user.email}</span>
                 <span className="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
@@ -65,6 +72,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 Sign out
               </button>
             </form>
+          </div>
           </div>
         </div>
       </header>
