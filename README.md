@@ -47,7 +47,14 @@ human. See [PLAN.md](./PLAN.md) for the full build plan.
    workspace; roles and workspace access are granted **only** here or by
    in-app admin actions (M8). Never from client input.
 
-6. **Invite the rest of the team** — each member signs up (they start as
+6. **Seed the demo brand kit** — SQL Editor →
+   [`supabase/seed.sql`](./supabase/seed.sql) → run. This creates the
+   synthetic "GlowNaturals" kit v1 (8 rules) attached to the workspace from
+   step 5. Idempotent: re-running skips if a kit already exists. The seeded
+   errors the demo will trigger are listed in
+   [`docs/acceptance.md`](./docs/acceptance.md).
+
+7. **Invite the rest of the team** — each member signs up (they start as
    `creator`, workspace unassigned), then the admin attaches them per the
    comments at the bottom of `supabase/bootstrap.sql`.
 

@@ -128,3 +128,10 @@ Vitest unit tests for pure functions only: banned-term matcher, disclaimer check
   - shadcn/ui initialized (base-nova preset on Base UI) + button/card/input/label/badge/textarea/select/tabs for upcoming screens.
   - Verified: `pnpm build` green; `/login` and `/` render correctly with no env configured (graceful setup banners); signout route is POST-only (405 on GET).
   - Remaining for M0 done-when: he creates the Supabase project, runs migration + bootstrap, signs in two roles, deploys to Vercel.
+
+- **23 Oct 2026 — M1 complete (code side; final run against his Supabase project pending).**
+  - `supabase/seed.sql`: GlowNaturals kit v1, published, 8 rules — 5 deterministic-checker contracts (palette, 2 banned terms, disclaimer, alt text) and 3 AI-checker contracts (approved claims C-12, tone, terminology). Idempotent; attaches to the workspace bootstrap created; payload shapes are the contract M4/M6 parse.
+  - `src/lib/db-types.ts`: hand-mapped `Database` types mirroring the migration (Rows, Inserts, Updates, enums, rule-payload interfaces); wired into both Supabase clients. Regenerate via CLI once project is linked.
+  - `docs/acceptance.md`: full-run script (upload → findings → decisions → approval), seeded-error matrix E1–E7 with expected rule citations, negative control, measures sheet, edge cases.
+  - Verification without a live database: careful review against the migration (columns, types, defaults). Residual risk: seed/typing drift until first run — first thing to check when the Supabase project exists.
+  - supabase-js 2.118 typing gotchas discovered while wiring the hand-mapped types (relevant when regenerating via CLI): every table needs `Relationships: []`, and Rows/Inserts must be `type` aliases, not `interface`s (index-signature constraint `Record<string, unknown>`). Build verified green with typed queries.
