@@ -150,3 +150,10 @@ Vitest unit tests for pure functions only: banned-term matcher, disclaimer check
   - **Bug caught by verification:** storage keys were built as `content/<ws>/…` inside a bucket already named `content` — browser uploads would have violated the workspace RLS policy. Fixed to `<ws>/<item>/<file>`; convention documented here: `storage_path` is the key INSIDE the bucket.
   - Tooling notes: PostgREST 13 defaults to `return=minimal` (send `Prefer: return=representation` to get inserted rows); React SSR interleaves `<!-- -->` between JSX expressions (grep rendered pages for contiguous strings only); bash `UID` is readonly.
   - Next: M4 deterministic checkers (banned terms, disclaimer, palette, alt-text presence) against the seeded-error matrix in docs/acceptance.md.
+
+- **23 Oct 2026 — M4 complete: deterministic checkers live and verified.**
+  - Five deterministic checkers shipped: banned_term, required_term, disclaimer, alt_text_policy, brand_color (dominant colour vs approved palette, CIE76 ΔE). Pure functions + 23 vitest unit tests (plan §9 testing slice started).
+  - Live matrix run: A (E1+E3) → 2 findings/needs_changes; B (E4+E5) → 2/needs_changes; C+C2 negative controls → 0/in_review; D chemical-free → 1. All findings cite correct kit rules; 0 uncited. 8–15 ms per check.
+  - **Bug caught:** decoder trusted file extensions; a `.png`-named object with JPEG bytes crashed pngjs ("unrecognised content at end of stream"). Fixed with magic-byte sniffing — decode by content, never by name.
+  - Note for polish: CIE76 can pick a counter-intuitive "nearest" palette colour for saturated hues (magenta → Linen); flagging threshold works, but CIEDE2000 is the Round-3 upgrade if time allows.
+  - Remaining in matrix: E2/E6/E7 are the grounded AI checks (M6). Next: M5 findings UI (accept/reject with ready-to-copy fixes), then M6.
