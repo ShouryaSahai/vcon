@@ -164,3 +164,10 @@ Vitest unit tests for pure functions only: banned-term matcher, disclaimer check
   - Verified: creator accepted a fix (finding fix_accepted, log "by creator User"); reviewer override with reason persisted; approver approved; creator attempting approve → 303 refused, no decision row; resubmission → linked child item re-checked against the same kit version (0 findings → in_review).
   - Verification technique recorded: server actions are curl-able via the rendered `$ACTION_ID_*` / `$ACTION_REF_*` hidden fields (no-JS path) or the `Next-Action` header with the id from the client bundle.
   - Remaining: M6 (grounded AI checks E2/E6/E7 — provider layer + citation enforcement; code+tests buildable with a stub, live run needs a Gemini API key), M8 (reviewer queue + routing polish), M9 (full demo run + backup recording), Vercel live URL.
+
+- **24 Oct 2026 — M8 complete: reviewer queue + routing verified.**
+  - `routeFinding` (unit tested): approved_claim → reviewer; confidence < 0.6 → reviewer + needs_human; else creator.
+  - `/review` for reviewer/approver/admin: routed findings (with rule citations + item links) and items awaiting verdict; gated notice for creators. Nav updated.
+  - Item page: creators only see accept/reject on findings routed to them.
+  - Verified live: synthetic AI claim finding citing C-12 appears in reviewer's /review; creator's /review gated; creator sees the claim finding read-only (0 fix buttons, "AI check" badge). Creator-cannot-approve verified in the M5 round.
+  - Remaining: M6 (needs Gemini API key for the live run — build with stubbed-model tests first), M9 (full acceptance run + backup recording), Vercel live URL.
