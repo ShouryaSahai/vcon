@@ -186,3 +186,11 @@ Vitest unit tests for pure functions only: banned-term matcher, disclaimer check
   - Product fix from the rehearsal: mixed creator+reviewer findings keep the item at needs_changes while creator work is open (previous logic jumped to in_review and blocked the fix loop).
   - Harness lessons: server actions drivable via rendered `$ACTION_ID_`/`$ACTION_REF_` fields; pick action ids by FORM CONTENT (lexicographic order swapped accept/reject); the append-only decision design correctly refused re-deciding — immutable by construction.
   - Remaining outside code: Vercel live URL (his GitHub/Vercel) + backup screen recording (his task; script = docs/acceptance.md §1). Round 3 backlog: measured evaluation report, insights view, accessibility checks, CIEDE2000.
+
+- **24 Oct 2026 — DEPLOYED: live URL working end to end.**
+  - **Live: https://vcon-six.vercel.app** (project `vcon`, `prj_9OOx5WzsxDQXR5S4hixUYdOfdV86`).
+  - GitHub: private repo ShouryaSahai/vcon created and pushed (17+ commits, secrets sweep clean).
+  - Cloud Supabase `nysbsquomciwnsrvnemp` (Mumbai… actually ap-northeast-2): schema + seed applied via Management API, 4 demo users with roles, email-confirm off, RLS verified on cloud REST.
+  - Vercel: env vars set (cloud Supabase URL + anon key, GEMINI_API_KEY, GEMINI_MODEL); deployed from files (no GitHub App installed yet — install it to enable auto-deploy on push); SSO deployment protection disabled; production domain assigned.
+  - Production smoke test: /login renders; / guarded; POST /api/checks on production → 4 cited findings in 4.5 s (banned → creator, AI claim → reviewer, tone + terminology → creator) against cloud DB + Gemini.
+  - Cookie-name note for testing deployed builds: the SSR cookie derives from the Supabase host (`sb-<ref>-auth-token`) — local is `sb-127-auth-token`, cloud is `sb-nysbsquomciwnsrvnemp-auth-token`.
