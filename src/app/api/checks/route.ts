@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-import type { ContentItem } from "@/lib/db-types";
 import { createClient } from "@/lib/supabase/server";
 import { runChecks } from "@/lib/checks/run";
 
@@ -31,7 +30,7 @@ export async function POST(request: Request) {
   // RLS scopes this read to the user's workspace — invisible items 404 here.
   const { data: item } = await supabase
     .from("content_items")
-    .select("id, workspace_id, kit_version_id, status")
+    .select("*")
     .eq("id", itemId)
     .maybeSingle();
   if (!item) {
@@ -68,13 +67,14 @@ export async function POST(request: Request) {
 
   await supabase.from("content_items").update({ status: "checking" }).eq("id", item.id);
 
+  const startedAt = Date.now();
   try {
-    const summary = await runChecks(
-      supabase,
-      item as Pick<ContentItem, "id" | "workspace_id" | "kit_version_id">,
-      check.id,
-    );
-    return NextResponse.json({ check_id: check.id, ...summary });
+    const summary = await runChecks(supabase, item, check.id);
+    return NextResponse.json({
+      check_id: check.id,
+      duration_ms: Date.now() - startedAt,
+      ...summary,
+    });
   } catch (error) {
     await supabase
       .from("checks")

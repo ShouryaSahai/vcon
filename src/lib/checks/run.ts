@@ -1,30 +1,81 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { ContentItem, Database, FindingInsert } from "@/lib/db-types";
+import type { ContentItem, Database, FindingInsert, KitRule } from "@/lib/db-types";
+
+import {
+  checkAltText,
+  checkBannedTerms,
+  checkDisclaimer,
+  checkRequiredTerms,
+  type FindingSeed,
+} from "./deterministic";
+import { checkBrandColor, type RasterImage } from "./color";
+import { decodeImage, downloadImage } from "./image";
 
 /**
- * The check pipeline. Runs deterministic checks first, then grounded AI
- * checks — every finding must cite a kit rule that exists in the checked
- * kit version, or it is downgraded to needs_human (M6 enforces this).
- *
- * M3: pipeline shell with stub checkers so upload → check → status works
- * end to end. M4 fills the deterministic checkers, M6 the AI checks.
+ * The check pipeline. Deterministic checks run first (this file); grounded AI
+ * checks arrive in M6 — every AI finding must cite a kit rule that exists in
+ * the checked kit version or it is downgraded to needs_human.
  */
 export async function runChecks(
   supabase: SupabaseClient<Database>,
-  item: Pick<ContentItem, "id" | "workspace_id" | "kit_version_id">,
+  item: ContentItem,
   checkId: string,
 ): Promise<{ findings: number; status: ContentItem["status"] }> {
-  // TODO(M4): deterministic checkers — banned terms, required disclaimers,
-  // image palette vs approved colours, alt text presence.
-  // TODO(M6): grounded AI checks (tone, claim wording, terminology, alt-text
-  // quality) with schema-validated output and citation enforcement.
-  const findings: FindingInsert[] = [];
+  const { data: rules } = await supabase
+    .from("kit_rules")
+    .select("*")
+    .eq("kit_version_id", item.kit_version_id)
+    .eq("is_active", true);
+
+  const seeds: FindingSeed[] = [];
+  let image: RasterImage | null = null;
+
+  for (const rule of (rules ?? []) as KitRule[]) {
+    try {
+      switch (rule.rule_type) {
+        case "banned_term":
+          seeds.push(...checkBannedTerms(rule, item));
+          break;
+        case "required_term":
+          seeds.push(...checkRequiredTerms(rule, item));
+          break;
+        case "disclaimer":
+          seeds.push(...checkDisclaimer(rule, item));
+          break;
+        case "alt_text_policy":
+          seeds.push(...checkAltText(rule, item));
+          break;
+        case "brand_color": {
+          if (item.source_kind !== "image" || !item.storage_path) break;
+          if (!image) {
+            image = decodeImage(await downloadImage(supabase, item.storage_path));
+          }
+          seeds.push(...checkBrandColor(rule, image));
+          break;
+        }
+        default:
+          // approved_claim, tone_guideline, custom → grounded AI checks (M6).
+          break;
+      }
+    } catch (error) {
+      // One failing checker must not fail the whole run.
+      console.error(`[checks] ${rule.rule_type} checker failed:`, error);
+    }
+  }
+
+  // TODO(M6): AI findings + citation enforcement (no valid kit_rule_id →
+  // needs_human), schema-validated model output, one retry.
+
+  const findings: FindingInsert[] = seeds.map((seed) => ({
+    ...seed,
+    content_item_id: item.id,
+    check_id: checkId,
+  }));
 
   if (findings.length > 0) {
-    await supabase
-      .from("findings")
-      .insert(findings.map((f) => ({ ...f, content_item_id: item.id, check_id: checkId })));
+    const { error } = await supabase.from("findings").insert(findings);
+    if (error) throw new Error(error.message);
   }
 
   const needsReviewer = findings.some(
