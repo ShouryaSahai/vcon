@@ -14,49 +14,44 @@ human. See [PLAN.md](./PLAN.md) for the full build plan.
 
 ## Quickstart
 
-1. **Install**
+### Option A — local Supabase stack (recommended for development)
 
-   ```bash
-   pnpm install
-   ```
+Prereqs: pnpm, Docker (any local daemon — Colima works; pass `DOCKER_HOST` if
+your socket is not the default).
 
-2. **Create a Supabase project** at [supabase.com](https://supabase.com), then
-   run the schema: open the project → **SQL Editor** → paste
+```bash
+pnpm install
+supabase start          # prints URL + keys; add DOCKER_HOST=... if needed
+supabase db reset       # applies migrations, then runs supabase/seed.sql
+```
+
+`db reset` creates the **GlowNaturals** workspace + brand kit v1 (8 rules).
+Then:
+
+```bash
+cp .env.example .env.local   # fill from `supabase status` (URL + publishable key;
+                             # sb_secret_ is the service-role equivalent)
+pnpm build && pnpm start     # http://localhost:3000  (or: pnpm dev)
+```
+
+Sign up in the app with your admin email, then run
+[`supabase/bootstrap.sql`](./supabase/bootstrap.sql) (edit `ADMIN_EMAIL_HERE`)
+in Studio's SQL editor (http://127.0.0.1:54323) or via
+`docker exec supabase_db_$(basename $PWD) psql -U postgres -d postgres`. That
+promotes the admin and attaches users — the only sanctioned elevation path.
+
+Users verified during setup: `admin@vcon.test`, `creator@vcon.test`,
+`outsider@vcon.test` — password `password123` (local test data only).
+
+### Option B — cloud Supabase project
+
+1. Create a project at [supabase.com](https://supabase.com) → SQL Editor → run
    [`supabase/migrations/0001_init.sql`](./supabase/migrations/0001_init.sql)
-   → run (once).
-
-3. **Configure environment**
-
-   ```bash
-   cp .env.example .env.local
-   # fill in NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
-   # (Project Settings → API). Leave service-role key unset for now (M8).
-   ```
-
-4. **Run**
-
-   ```bash
-   pnpm dev        # http://localhost:3000
-   ```
-
-5. **Create the first admin (trusted operation)**
-
-   Sign up in the app with the email that should be admin, then run
-   [`supabase/bootstrap.sql`](./supabase/bootstrap.sql) in the SQL Editor
-   (edit `ADMIN_EMAIL_HERE` first). Signup always creates a `creator` with no
-   workspace; roles and workspace access are granted **only** here or by
-   in-app admin actions (M8). Never from client input.
-
-6. **Seed the demo brand kit** — SQL Editor →
-   [`supabase/seed.sql`](./supabase/seed.sql) → run. This creates the
-   synthetic "GlowNaturals" kit v1 (8 rules) attached to the workspace from
-   step 5. Idempotent: re-running skips if a kit already exists. The seeded
-   errors the demo will trigger are listed in
-   [`docs/acceptance.md`](./docs/acceptance.md).
-
-7. **Invite the rest of the team** — each member signs up (they start as
-   `creator`, workspace unassigned), then the admin attaches them per the
-   comments at the bottom of `supabase/bootstrap.sql`.
+   → run [`supabase/seed.sql`](./supabase/seed.sql).
+2. `cp .env.example .env.local` → paste your project URL + API keys
+   (Settings → API; new projects use `sb_publishable_` / `sb_secret_` keys —
+   the variable names below stay the same).
+3. `pnpm dev`, sign up, run `supabase/bootstrap.sql` for the first admin.
 
 ### Demo tip
 

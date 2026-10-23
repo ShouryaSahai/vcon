@@ -1,11 +1,16 @@
 -- ============================================================================
 -- Vcon — seed: "GlowNaturals" synthetic brand kit, version 1 (M1)
 --
--- TRUSTED OPERATION: run in the Supabase SQL Editor as the project owner
--- (bypasses RLS by design). Run AFTER supabase/bootstrap.sql — it attaches
--- the kit to the first workspace that bootstrap created.
+-- TRUSTED OPERATION: run by the project owner (Supabase SQL Editor, or
+-- automatically by `supabase db reset` on the local stack).
 --
--- Idempotent: if the workspace already has a brand kit, this script skips.
+-- Idempotent:
+--   - creates the demo workspace only if no workspace exists yet,
+--   - attaches the brand kit only if the workspace has none.
+--
+-- No user dependency: workspaces are independent of auth.users. Admin
+-- promotion + user attachment happen in supabase/bootstrap.sql AFTER the
+-- first admin signs up.
 --
 -- The rule payloads below are the CONTRACT that M4's deterministic checkers
 -- and M6's AI checks parse. The seeded-error matrix built on these rules
@@ -18,12 +23,17 @@ declare
   kit uuid;
   ver uuid;
 begin
-  select id into ws from public.workspaces order by created_at limit 1;
-
-  if ws is null then
-    raise exception 'No workspace found. Run supabase/bootstrap.sql first.';
+  -- 1) Workspace (independent of users; created_by left NULL for seeded ws)
+  if not exists (select 1 from public.workspaces) then
+    insert into public.workspaces (name)
+    values ('GlowNaturals Demo')
+    returning id into ws;
+    raise notice 'Created workspace %.', ws;
+  else
+    select id into ws from public.workspaces order by created_at limit 1;
   end if;
 
+  -- 2) Brand kit
   if exists (select 1 from public.brand_kits where workspace_id = ws) then
     raise notice 'Workspace % already has a brand kit — seed skipped.', ws;
     return;
@@ -33,8 +43,10 @@ begin
   values (ws, 'GlowNaturals Brand Kit')
   returning id into kit;
 
-  insert into public.kit_versions (kit_id, version_number, status, published_at)
-  values (kit, 1, 'published', now())
+  -- Insert as draft (published versions are immutable by DB trigger),
+  -- add the rules, then publish.
+  insert into public.kit_versions (kit_id, version_number, status)
+  values (kit, 1, 'draft')
   returning id into ver;
 
   update public.brand_kits
@@ -76,6 +88,10 @@ begin
     (ver, 'custom', 'Terminology: brand name',
      '{"preferred":"GlowNaturals","avoid":["Glow Naturals"]}'::jsonb,
      'low');
+
+  update public.kit_versions
+  set status = 'published', published_at = now()
+  where id = ver;
 
   raise notice 'Seeded GlowNaturals kit v1 (%) with 8 rules into workspace %.', ver, ws;
 end;

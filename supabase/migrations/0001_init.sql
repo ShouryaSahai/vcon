@@ -207,6 +207,31 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- Published kit versions are immutable — enforced here at the DB level,
+-- not just in the app layer. Rule mutations must target a draft version.
+create or replace function public.enforce_rules_in_draft()
+returns trigger
+language plpgsql
+as $$
+declare
+  v_status public.kit_version_status;
+begin
+  if tg_op = 'DELETE' then
+    select status into v_status from public.kit_versions where id = old.kit_version_id;
+  else
+    select status into v_status from public.kit_versions where id = new.kit_version_id;
+  end if;
+  if v_status = 'published' then
+    raise exception 'kit version is published and immutable — edits belong in a draft version';
+  end if;
+  return coalesce(new, old);
+end;
+$$;
+
+create trigger kit_rules_draft_only
+  after insert or update or delete on public.kit_rules
+  for each row execute function public.enforce_rules_in_draft();
+
 -- ===== Row Level Security ===================================================
 
 alter table public.workspaces    enable row level security;

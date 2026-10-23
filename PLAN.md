@@ -135,3 +135,11 @@ Vitest unit tests for pure functions only: banned-term matcher, disclaimer check
   - `docs/acceptance.md`: full-run script (upload → findings → decisions → approval), seeded-error matrix E1–E7 with expected rule citations, negative control, measures sheet, edge cases.
   - Verification without a live database: careful review against the migration (columns, types, defaults). Residual risk: seed/typing drift until first run — first thing to check when the Supabase project exists.
   - supabase-js 2.118 typing gotchas discovered while wiring the hand-mapped types (relevant when regenerating via CLI): every table needs `Relationships: []`, and Rows/Inserts must be `type` aliases, not `interface`s (index-signature constraint `Record<string, unknown>`). Build verified green with typed queries.
+
+- **23 Oct 2026 — M2 (kit UI) built; M0/M1 verified end-to-end on a local Supabase stack.**
+  - `/kit` built and verified: admin editor with draft-edit-publish flow, creator read-only view, outsider "no workspace" notice — rendered per-role against real seeded data.
+  - Local stack: Docker via Colima (supabase CLI needs `DOCKER_HOST=unix:///<socket>` when the daemon is not at the default socket); `supabase db reset` applies migration + runs seed.sql automatically.
+  - **Security evidence (REST-level, with the new sb_publishable keys):** signup → profile `creator` + unassigned for every user (client metadata ignored); outsider reads 0 kit rules and only their own profile; creator reads 8 rules but write → 403 `42501` RLS; admin reads 8 rules and 2 workspace profiles (not the outsider).
+  - **Hardening added:** DB trigger `kit_rules_draft_only` — rule mutations against a published version now fail at the database level (verified: admin REST insert into published v1 → `P0001` "published and immutable"), not just in the app layer. Seed restructured to insert rules as draft, then publish.
+  - Gotchas recorded: `psql -c` with multiple statements = one transaction (an error rolls back the whole batch); `auth.users` also has a `role` column (qualify `p.role` in joins).
+  - Remaining for M0 done-when: Vercel live URL (needs his GitHub/Vercel accounts, or a Vercel token). Next: M3 upload + status.
