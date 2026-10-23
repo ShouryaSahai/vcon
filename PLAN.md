@@ -1,0 +1,130 @@
+# Vcon — Round 2 Build Plan (v2)
+
+Owner: Shourya Sahai (tech lead, solo build) · Date: 23 Oct 2026
+Source: Round 1 submission (Team CON-V), revised after plan re-review.
+
+## 1. What changed after re-review (v1 → v2)
+
+1. **Vercel AI SDK replaces a hand-rolled provider layer.** One interface for Gemini now and OpenRouter later, with zod-based structured output built in. Less code, same design goal.
+2. **Explicit status machines** for content items and findings (Section 5). Undefined states are where solo builds stall.
+3. **Schema is now column-level** (Section 4) so it can be vetoed now instead of migrated later.
+4. **Bounded screen list** (Section 6) — the UI surface is fixed at 6 screens.
+5. **Testing slice added** (Section 9) — unit tests for the pure functions only (deterministic checkers, citation enforcement). Cheap, and it backs the "reliability" story with evidence.
+6. **Timeboxes + an ordered cut-list** (Section 8) — the cut-list is the scope contract if time runs short.
+7. **Alt text becomes an upload input** — presence check is deterministic, quality check is AI. Small decision, makes a Round 1 requirement actually checkable.
+8. Prior cuts confirmed: rule extraction = prefill stretch goal only; one AI provider until it works; no queue infrastructure; docx late, PDF optional.
+
+## 2. Scope for Round 2
+
+**In:** text + image first-class; brand kit via structured forms with versioning; deterministic checks; grounded AI checks with citations, confidence and "no source found"; findings UI (what/where/why/rule/fix); routing tags by type + confidence; roles, decisions, comments, history, resubmission; seeded synthetic skincare kit.
+
+**Out:** rule extraction prefill (stretch); insights view (Round 3); accessibility/contrast checks (Round 3); video and audio; direct publishing; automatic image editing; second AI provider (interface only); specialist sub-queue screens.
+
+## 3. Architecture
+
+- Next.js (App Router, TypeScript strict) on Vercel. App scaffolded at the `UPSTART` root.
+- Supabase: Postgres + Auth + Storage. Every mutation re-checks role server-side; RLS on every table scoped by `workspace_id`.
+- Uploads go direct from client to Storage (signed upload). After upload the client calls `POST /api/checks`, which runs the whole pipeline and writes findings; the UI polls item status. No external queue.
+- All AI calls run server-side only. Keys in `.env.local`, never committed.
+- One runner: `runChecks(contentItemId)` → load kit version → deterministic checks → AI check → write findings + update status. Failed runs set `status=failed` with a retry button.
+
+## 4. Data model
+
+| Table | Key columns |
+|---|---|
+| `workspaces` | id, name, created_by |
+| `profiles` | id (= auth.users.id), workspace_id, full_name, role: admin \| creator \| approver \| reviewer |
+| `brand_kits` | id, workspace_id, name, current_version_id |
+| `kit_versions` | id, kit_id, version_number, status: draft \| published, published_at |
+| `kit_rules` | id, kit_version_id, rule_type: banned_term \| required_term \| approved_claim \| brand_color \| tone_guideline \| disclaimer \| alt_text_policy \| custom, name, payload jsonb, severity_default, is_active |
+| `content_items` | id, workspace_id, kit_version_id, created_by, context_type (instagram_post \| blog \| ad …), source_kind: text \| image \| docx, storage_path, text_content, alt_text, status, parent_item_id (resubmission link) |
+| `checks` | id, content_item_id, status: queued \| running \| done \| failed, started_at, finished_at, error, summary jsonb |
+| `findings` | id, check_id, content_item_id, kit_rule_id, source: rule_engine \| ai, title, explanation, location jsonb, severity, confidence, suggested_fix, assigned_to_role: creator \| reviewer, needs_human bool, status |
+| `comments` | id, content_item_id, finding_id nullable, author_id, body, created_at |
+| `decision_log` | id, content_item_id, finding_id nullable, actor_id, action: approved \| returned \| fix_accepted \| fix_rejected \| override, reason, created_at |
+
+- Single `kit_rules` table with a typed `payload` jsonb — one schema for all rule types, no per-type migrations.
+- History = `decision_log` + `comments`, append-only.
+
+## 5. Status machines
+
+- `content_items.status`: uploaded → checking → needs_changes → in_review → approved · returned · failed
+- `findings.status`: open → fix_accepted · fix_rejected · overridden · needs_human
+- Resubmission creates a new `content_items` row with `parent_item_id` set and re-runs checks against the same kit version.
+
+## 6. Screens (fixed set)
+
+1. `/login` — Supabase auth, role from profile
+2. `/kit` — rules by type, add/edit/deactivate, publish new version (draft → confirm → published)
+3. `/upload` — context + text or image (+ alt text for images)
+4. `/items` — list with status badges
+5. `/items/[id]` — the core screen: preview, findings (what/where/why/rule/fix/confidence/needs_human), accept/reject fix (creator), approve/return/override with reason (reviewer), comments, history, kit version shown
+6. `/review` — reviewer queue: items in review + findings assigned to reviewer role
+
+## 7. Checkers
+
+**Deterministic (run first):** banned terms (word-boundary match); required terms/disclaimers present per context type; image palette vs approved colours (dominant-colour extraction + delta-E threshold); alt text present.
+
+**AI (Gemini, one call, all kit rules in prompt, zod-validated JSON):** tone vs tone guideline; claim wording vs approved claims; terminology vs glossary; alt-text quality.
+
+**Citation enforcement (code, not prompt):** every AI finding must cite a `kit_rule_id` that exists in the checked kit version. Missing citation → downgraded to `needs_human` or dropped. Malformed output → one retry → `needs_human`.
+
+## 8. Milestones, timeboxes, cut-list
+
+| # | Milestone | Done when | Timebox |
+|---|---|---|---|
+| M0 | Scaffold, deploy, auth + roles | Two roles sign in, live URL | 0.5–1 d |
+| M1 | Schema + RLS + seed | Seed script creates skincare kit v1 with seeded errors; acceptance script drafted | 1 d |
+| M2 | Kit UI | Admin edits rules and publishes v2 | 1 d |
+| M3 | Upload + status | Text + image upload, "checking" visible | 0.5–1 d |
+| M4 | Deterministic checks | Every seeded error flagged with its rule cited | 1–1.5 d |
+| M5 | Findings UI | Finding shows what/where/why/rule/fix | 1 d |
+| M6 | AI checks + citation enforcement | AI finding cites a rule or is needs_human; malformed output rejected | 1.5–2 d |
+| M7 | Decisions + history | Accept/reject, approve/return, override with reason; resubmission re-checks | 1.5–2 d |
+| M8 | Routing + role gating | Claims finding lands in reviewer queue; creator cannot approve | 0.5 d |
+| M9 | Demo run + backup recording | One post: upload → approval, no manual fixes | 1 d |
+
+Total: ~9–12 focused days.
+
+**Cut-list, in order, if behind:** docx support → alt-text AI quality check → unit tests beyond the citation validator → specialist assignment granularity. **Never cut:** M0–M6 core path, M9 backup recording.
+
+## 9. Testing
+
+Vitest unit tests for pure functions only: banned-term matcher, disclaimer checker, colour delta-E, citation-enforcement validator, output schema validation. One integration test for the pipeline with the AI stubbed by a fixture. No E2E framework.
+
+## 10. Locked decisions (defaults — veto anything)
+
+- pnpm, Next.js App Router, TypeScript strict
+- Tailwind + shadcn/ui
+- Vercel AI SDK with the Google provider; OpenRouter provider added later behind the same interface
+- zod schemas shared between API validation and UI
+- Conventional commits, feature branches, squash to main
+- Only synthetic/sample brand material; API keys in env vars
+
+## 11. Risks
+
+| Risk | Mitigation |
+|---|---|
+| Vercel Hobby function timeout on slow AI calls | Keep demo files small; `failed` status + retry button |
+| Gemini rate limit / outage | Deterministic checks unaffected; add OpenRouter provider when core works |
+| Supabase free tier pauses when idle | Wake project before every demo session |
+| Scope creep | Cut-list in Section 8 is the contract |
+
+## 12. Open questions (veto window)
+
+1. Single `kit_rules` table with jsonb payload — approve, or one table per rule type?
+2. Alt text typed by the creator at upload — acceptable?
+3. Vercel AI SDK as the provider layer — approve?
+4. Keep rule extraction out of Round 2 (prefill later) — confirm?
+5. Real deadline from the organisers? The ~9–12 day estimate flexes around it.
+
+## 13. Progress log
+
+- **23 Oct 2026 — M0 code complete; live verification pending his Supabase project.**
+  - Next.js 16.4.2 scaffold. Two Next 16 changes handled: `middleware.ts` → `src/proxy.ts` (deprecated), and Cache Components default — session-reading routes use `export const instant = false` for now (documented opt-out; convert to Suspense patterns later, one route at a time).
+  - **Security correction applied (Shourya, pre-build):** signup always creates `role='creator'` with `workspace_id=NULL`; no role metadata from the client; no auto-join of a shared demo workspace. Elevation only via `supabase/bootstrap.sql` (project owner) or in-app admin actions (M8). RLS unchanged as the enforcement point.
+  - `supabase/migrations/0001_init.sql`: full schema (§4), RLS on every table, new-user trigger, private `content` storage bucket with workspace-scoped path policies.
+  - Auth wired: sign-in/sign-up (no role picker, by design), proxy route guard, `/auth/callback` + `/auth/signout` route handlers, shell with role badge and workspace-status notice.
+  - shadcn/ui initialized (base-nova preset on Base UI) + button/card/input/label/badge/textarea/select/tabs for upcoming screens.
+  - Verified: `pnpm build` green; `/login` and `/` render correctly with no env configured (graceful setup banners); signout route is POST-only (405 on GET).
+  - Remaining for M0 done-when: he creates the Supabase project, runs migration + bootstrap, signs in two roles, deploys to Vercel.

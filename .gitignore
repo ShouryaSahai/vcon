@@ -32,6 +32,12 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# workspace-local tooling (pnpm store / redirected caches)
+/.pnpm-store
+/.cache
+/.home
 
 # vercel
 .vercel
