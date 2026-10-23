@@ -97,11 +97,12 @@ export async function runChecks(
     if (error) throw new Error(error.message);
   }
 
-  const needsReviewer = findings.some(
-    (f) => f.assigned_to_role === "reviewer" || f.needs_human === true,
+  // Status: open creator findings mean the creator loop runs first
+  // (needs_changes); otherwise the item goes to review.
+  const hasCreatorWork = findings.some(
+    (f) => f.assigned_to_role === "creator" && f.status === "open",
   );
-  const status: ContentItem["status"] =
-    findings.length === 0 || needsReviewer ? "in_review" : "needs_changes";
+  const status: ContentItem["status"] = hasCreatorWork ? "needs_changes" : "in_review";
 
   await supabase.from("content_items").update({ status }).eq("id", item.id);
 

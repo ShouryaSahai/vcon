@@ -61,3 +61,35 @@ and correct brand name → zero findings.
 - Kit updated between submissions → item records the kit version it was
   checked against.
 - Malformed AI output → one retry, then needs human (M6 validator log).
+
+## 5. Run log — 24 Oct 2026 (M9 acceptance, local stack, real API surfaces)
+
+**Full seeded-error matrix: 7/7 detected, 0 false flags, every finding cited.**
+
+| Seeded error | Checker | Detected | Cited rule |
+|---|---|---|---|
+| E1 banned "miracle" | deterministic | ✅ | Banned: "miracle" |
+| E2 "100% natural" claim | AI (Gemini 3.5 Flash) | ✅ | Approved claims (C-12), routed to reviewer |
+| E3 missing disclaimer | deterministic | ✅ | Disclaimer with performance claims |
+| E4 off-palette image | deterministic | ✅ | Approved palette (ΔE 122.7 vs limit 10) |
+| E5 missing alt text | deterministic | ✅ | Alt text required |
+| E6 hype tone | AI | ✅ | Voice: warm, plain-spoken |
+| E7 "Glow Naturals" | AI | ✅ | Terminology: brand name |
+
+- False flags: **0** (clean caption + on-palette sage image with alt text → 0 findings)
+- Citations correct: **all**; uncited findings: **0**
+- Time per check: deterministic ≈ 8–25 ms; with AI ≈ 0.8–4.5 s (model 3.5-flash, thinking off)
+- Full flow exercised via real surfaces: upload (RLS-scoped insert + private
+  storage) → checks → 6 findings on the flagged post+image → creator
+  accept/reject decisions (both exercised) → reviewer approved the claim via
+  override with reason → creator resubmitted (new linked item, re-checked:
+  0 findings) → approver approved → **text post: upload → approval with no
+  manual fixes**; on-palette image also approved.
+- Gating: creator attempting approve → refused (303), no decision row.
+- Harness notes (not product bugs): verification drove server actions via
+  no-JS form encodings; a lexicographic action-id pick swapped two decision
+  calls, and the append-only design correctly refused to rewrite them —
+  decisions are immutable once made.
+- Product fix that came out of the rehearsal: mixed findings (creator +
+  reviewer) now leave the item at `needs_changes` while creator work is
+  open, instead of jumping to `in_review` and blocking the fix loop.
