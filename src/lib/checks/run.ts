@@ -11,6 +11,7 @@ import {
 } from "./deterministic";
 import { checkBrandColor, type RasterImage } from "./color";
 import { decodeImage, downloadImage } from "./image";
+import { routeFinding } from "./routing";
 
 /**
  * The check pipeline. Deterministic checks run first (this file); grounded AI
@@ -67,11 +68,17 @@ export async function runChecks(
   // TODO(M6): AI findings + citation enforcement (no valid kit_rule_id →
   // needs_human), schema-validated model output, one retry.
 
-  const findings: FindingInsert[] = seeds.map((seed) => ({
-    ...seed,
-    content_item_id: item.id,
-    check_id: checkId,
-  }));
+  const findings: FindingInsert[] = seeds.map((seed) => {
+    const rule = (rules ?? []).find((r) => r.id === seed.kit_rule_id);
+    const routing = routeFinding(rule?.rule_type ?? "custom", seed.confidence ?? null);
+    return {
+      ...seed,
+      content_item_id: item.id,
+      check_id: checkId,
+      assigned_to_role: routing.assigned_to_role,
+      needs_human: routing.needs_human,
+    };
+  });
 
   if (findings.length > 0) {
     const { error } = await supabase.from("findings").insert(findings);

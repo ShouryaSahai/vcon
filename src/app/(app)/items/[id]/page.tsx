@@ -286,7 +286,9 @@ export default async function ItemPage({
                   )}
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {finding.status === "open" && isCreator && item.status !== "approved" && (
+                    {finding.status === "open" && isCreator &&
+                      finding.assigned_to_role === "creator" &&
+                      item.status !== "approved" && (
                       <>
                         {fixText && (
                           <form action={acceptFix}>
