@@ -157,3 +157,10 @@ Vitest unit tests for pure functions only: banned-term matcher, disclaimer check
   - **Bug caught:** decoder trusted file extensions; a `.png`-named object with JPEG bytes crashed pngjs ("unrecognised content at end of stream"). Fixed with magic-byte sniffing — decode by content, never by name.
   - Note for polish: CIE76 can pick a counter-intuitive "nearest" palette colour for saturated hues (magenta → Linen); flagging threshold works, but CIEDE2000 is the Round-3 upgrade if time allows.
   - Remaining in matrix: E2/E6/E7 are the grounded AI checks (M6). Next: M5 findings UI (accept/reject with ready-to-copy fixes), then M6.
+
+- **23 Oct 2026 — M5 + M7 complete: the decision screen works end to end.**
+  - `/items/[id]` is now the money screen: findings (what/where/why/rule/fix), accept/reject with ready-to-copy fixes, override with required reason, approve/return verdict, comments, append-only history, parent/child resubmission links.
+  - Server actions with app-layer role gating on top of RLS: creator decisions, reviewer overrides, approver verdicts — all verified via real no-JS server-action POSTs (progressive-enhancement form encoding).
+  - Verified: creator accepted a fix (finding fix_accepted, log "by creator User"); reviewer override with reason persisted; approver approved; creator attempting approve → 303 refused, no decision row; resubmission → linked child item re-checked against the same kit version (0 findings → in_review).
+  - Verification technique recorded: server actions are curl-able via the rendered `$ACTION_ID_*` / `$ACTION_REF_*` hidden fields (no-JS path) or the `Next-Action` header with the id from the client bundle.
+  - Remaining: M6 (grounded AI checks E2/E6/E7 — provider layer + citation enforcement; code+tests buildable with a stub, live run needs a Gemini API key), M8 (reviewer queue + routing polish), M9 (full demo run + backup recording), Vercel live URL.
