@@ -16,9 +16,6 @@ import { RULE_TYPES, RULE_TYPE_LABELS } from "@/lib/types";
 import { createKit } from "./actions";
 import { KitAdmin } from "./rule-forms";
 
-// Session-reading page (Cache Components opt-out).
-export const instant = false;
-
 export default async function KitPage() {
   const supabase = await createClient();
   const {

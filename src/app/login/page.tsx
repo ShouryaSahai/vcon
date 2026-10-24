@@ -1,17 +1,18 @@
-import { isSupabaseConfigured } from "@/lib/env";
+import { Suspense } from "react";
 
-// Reads searchParams at request time (Cache Components opt-out).
-export const instant = false;
+import { isSupabaseConfigured } from "@/lib/env";
 
 import { LoginForm } from "./login-form";
 
-export default async function LoginPage({
+/**
+ * Static shell: the login screen paints instantly. Only the searchParams
+ * read (the error flag) streams in behind a boundary.
+ */
+export default function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const { error } = await searchParams;
-
   return (
     <main className="flex min-h-screen items-center justify-center bg-secondary/50 px-4">
       <div className="w-full max-w-md">
@@ -30,9 +31,20 @@ export default async function LoginPage({
             </p>
           </div>
         ) : (
-          <LoginForm authError={error === "auth"} />
+          <Suspense fallback={<LoginForm authError={false} />}>
+            <LoginInner searchParams={searchParams} />
+          </Suspense>
         )}
       </div>
     </main>
   );
+}
+
+async function LoginInner({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
+  return <LoginForm authError={error === "auth"} />;
 }

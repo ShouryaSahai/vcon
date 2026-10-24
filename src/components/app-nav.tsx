@@ -2,15 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const ICONS: Record<string, React.ReactNode> = {
-  upload: (
-    <path d="M12 15V4m0 0L8 8m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-  ),
-  list: <path d="M4 6h16M4 12h16M4 18h10" />,
-  review: <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />,
-  kit: <path d="M12 3l8 5-8 13L4 8l8-5z" />,
-};
+import { Suspense } from "react";
+import { Upload, Rows3, ShieldCheck, SwatchBook } from "lucide-react";
 
 const LINKS = [
   { href: "/upload", label: "Upload", icon: "upload" },
@@ -19,7 +12,49 @@ const LINKS = [
   { href: "/kit", label: "Brand kit", icon: "kit" },
 ] as const;
 
-export function AppNav({ reviewCount }: { reviewCount: number }) {
+function Icon({ name, active }: { name: string; active?: boolean }) {
+  const cls = `h-[15px] w-[15px]${active ? " text-primary" : " opacity-80"}`;
+  return name === "upload" ? (
+    <Upload className={cls} />
+  ) : name === "list" ? (
+    <Rows3 className={cls} />
+  ) : name === "review" ? (
+    <ShieldCheck className={cls} />
+  ) : (
+    <SwatchBook className={cls} />
+  );
+}
+
+/**
+ * Prerender-safe nav: the link list is in the static shell; the
+ * pathname-dependent active state streams in behind a boundary (and after
+ * hydration updates instantly on client navigations).
+ */
+export function AppNav({ reviewBadge }: { reviewBadge?: React.ReactNode }) {
+  return (
+    <Suspense fallback={<NavLinksStatic />}>
+      <NavLinksDynamic reviewBadge={reviewBadge} />
+    </Suspense>
+  );
+}
+
+function NavLinksStatic() {
+  return (
+    <nav className="mt-1 space-y-px">
+      {LINKS.map((link) => (
+        <span
+          key={link.href}
+          className="flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] font-medium text-sidebar-foreground/70"
+        >
+          <Icon name={link.icon} />
+          {link.label}
+        </span>
+      ))}
+    </nav>
+  );
+}
+
+function NavLinksDynamic({ reviewBadge }: { reviewBadge?: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
@@ -40,25 +75,9 @@ export function AppNav({ reviewCount }: { reviewCount: number }) {
                 : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
             }`}
           >
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className={active ? "text-primary" : "opacity-80"}
-            >
-              {ICONS[link.icon]}
-            </svg>
+            <Icon name={link.icon} active={active} />
             {link.label}
-            {link.href === "/review" && reviewCount > 0 && (
-              <span className="ml-auto rounded-full bg-primary px-1.5 text-[10px] font-semibold leading-5 text-sidebar-primary-foreground">
-                {reviewCount}
-              </span>
-            )}
+            {link.href === "/review" && reviewBadge}
           </Link>
         );
       })}

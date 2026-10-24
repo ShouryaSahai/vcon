@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { SevChip, StatusPill } from "@/components/indicators";
+import { fmtDateTime } from "@/lib/format";
 import type { ContentStatus, Severity } from "@/lib/db-types";
 
 export interface ListItem {
@@ -88,14 +89,14 @@ export function ItemsBrowser({
               <Link
                 key={item.id}
                 href={`/items/${item.id}`}
-                className="grid grid-cols-[minmax(0,1fr)_200px_100px_140px] items-center gap-4 border-b border-border px-4.5 py-3 transition-colors last:border-none hover:bg-secondary/60"
+                className="group grid grid-cols-[minmax(0,1fr)_200px_100px_140px] items-center gap-4 border-b border-border px-4.5 py-3 transition-colors last:border-none hover:bg-muted/50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring/40"
               >
                 <div className="min-w-0">
                   <span className="block text-[11px] text-muted-foreground">
                     {item.source_kind === "text" ? "Text" : "Image"} ·{" "}
                     {item.context_type.replace("_", " ")}
                   </span>
-                  <span className="mt-0.5 block truncate text-[13px] font-semibold">
+                  <span className="mt-0.5 block truncate text-[13px] font-semibold transition-colors group-hover:text-primary">
                     {item.snippet || "No text content"}
                   </span>
                 </div>
@@ -114,12 +115,7 @@ export function ItemsBrowser({
                 <span className="text-right">
                   <StatusPill status={item.status} />
                   <span className="mt-1 block text-[11px] text-muted-foreground">
-                    {new Date(item.created_at).toLocaleString([], {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {fmtDateTime(item.created_at)}
                   </span>
                 </span>
               </Link>

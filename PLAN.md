@@ -210,3 +210,53 @@ Vitest unit tests for pure functions only: banned-term matcher, disclaimer check
   - Stage 2: evidence-first detail screen (inline severity-highlighted flagged terms, findings as evidence cards with rule chips + confidence meters + fix blocks, right rail with Verification panel wired to WP2 summaries + verdict + history), content list with severity-count chips + filter, restyled review/kit/upload/login. Shared indicator components (StatusPill, SevChip, SevRail, ConfidenceMeter, HighlightedText).
   - Verified: 33/33 tests, build green, screenshots of every screen in both themes (design/screenshots/).
   - **Deployed to production** (approved): https://vcon-six.vercel.app now runs the redesigned UI — Geist + navy sidebar verified live via computed styles; cloud smoke pass re-run against the new build.
+
+## 14. Instant-navigation + premium polish pass (24 Oct 2026, in progress)
+
+**Reported symptom:** ~2s feel on GUI navigation. **Root cause found:** every route + the `(app)` layout carries `export const instant = false` (the M0-era Cache-Components opt-out) — navigations block on a full server render (edge auth + DB) before anything paints; on the deployed app this stacks cross-region RTT on every tab switch. Also confirmed: no PPR anywhere in the app (all routes fully dynamic), so prefetching is useless today.
+
+**Fix plan (per Next 16.4.2 bundled guides `instant-navigation` + `authentication-with-cache-components`):**
+1. `src/lib/auth.ts` (new): `getCurrentUser()` via `"use cache: private"` (session UI cached per-browser, prefetch-eligible, redirect() on no user — documented pattern); `getReviewCount()` private-cached with 30s stale.
+2. `(app)/layout.tsx`: static sidebar shell; three `<Suspense>` holes (review badge, workspace chip, user row) with same-geometry skeleton fallbacks → zero layout shift; remove `instant = false`.
+3. Remove `instant = false` from all 7 routes; page reads covered by the existing `(app)/loading.tsx` boundary → skeleton shows instantly on every client navigation while content streams.
+4. `/login`: searchParams read moved inside a Suspense child (form renders instantly from the shell).
+5. `/` (stale M0 overview page): redirect to `/items` — the real landing; removes dead placeholder copy from the demo path.
+6. Verify: build validation + tests + route timings + screenshots both themes; then premium visual polish pass.
+
+**Shipped + verified (24 Oct, late):**
+- All 8 opt-outs removed; build validation surfaced and fixed the one real blocker (`usePathname()` in the nav → boundary inside `AppNav` with a static link-list fallback; active state still updates instantly after hydration).
+- Build output: **every route now ◐ Partial Prerender** (was ƒ fully-dynamic everywhere) → static shells are prerendered + CDN/prefetch-served; sidebar chrome paints instantly on every navigation; only session holes + page content stream.
+- `src/lib/auth.ts`: `getCurrentUser()` (private cache, browser-only, redirect-on-no-user) + `getReviewCount()` (stale 30s). Layout rewritten as a sync shell with 3 Suspense holes and same-geometry skeletons; `AppNav` takes the badge as a server-rendered slot prop.
+- Timings (local prod, curl): warm TTFB **17–90 ms** across /items /review /kit /upload; full streams ≤ 350 ms; edge redirect for signed-out hits **~5 ms**; item detail TTFB 39 ms. Deployed-app note: shells are static, so even a cold Vercel function only delays streamed holes — first paint is instant.
+- Verified: 33/33 tests; severity sort on item page (medium before low; DB order low→medium); workspace chip + kit label streamed; nav badge hole; both themes (`.dark` tokens + pre-paint script + toggle); `/` → `/items` redirect live.
+- Test tooling note: local test user `vcon-perf-check@local.test` (admin, GlowNaturals) + forged `sb-127-auth-token` cookie used for authed curl checks; cookie recipe recorded (base64- prefixed base64url session JSON).
+- Next: premium visual polish pass (screenshots → targeted restyle), then final report.
+
+**Premium polish pass — shipped + verified (24 Oct, late):**
+- Token-level depth (both themes): `--shadow-card` elevation on every card (via the Card primitive — one change lifts all screens), `--sidebar-gradient` (navy gradient, slightly deeper in dark), ambient 5% primary radial glow under the header (single color-mix rule, theme-aware).
+- Primitives: primary Button now has layered shadow + hover lift (`shadow-sm → hover:shadow-md`, primary-tinted); Card keeps ring-1 but adds the elevation shadow.
+- Screens: sidebar logo mark → gradient tile with glow; items header title bumped to 19px; "+ New check" → Plus icon + elevated primary; list rows → `group` hover (title tints primary, bg-muted/50) + keyboard focus ring; streaming skeleton uses theme tokens (was raw slate, wrong in dark).
+- Authenticated screenshots captured headlessly (cookie-bootstrap trick; Chrome needed one sandbox-approved capture): `design/screenshots/app3-{items,detail,login}-light.png` — sidebar gradient, glow, card depth all verified visually; findings/verify/rail render intact.
+- Tests 33/33, build green, all routes still ◐ PPR; warm TTFB unchanged (30–46 ms) — the polish was class-level only, zero render-cost regression.
+- Left running: local prod server on :3000 (background job). Not deployed: production still serves the pre-pass build — `vercel deploy` (files-based, per §13) when Shourya approves.
+
+- **Refresh control added (24 Oct, ~01:10):** new `RefreshButton` (client, `router.refresh()` inside a transition) in the sidebar bottom bar next to theme/sign-out — one click re-fetches the current screen's server data (findings, counts, status) without a full reload; scroll + list filters preserved; icon spins while streaming. Review badge made live (uncached request read in its own Suspense hole) so Refresh visibly updates it — navigations still instant since the shell streams the badge separately. Verified: build green (all ◐), 33/33 tests, button renders in authed HTML, screenshot `app3-items-light.png` updated.
+
+## 15. Image restrictor + timestamp fix (25 Oct 2026, ~01:45)
+
+**Image safety (zip-bomb class of upload):** the colour checker handed raw uploaded bytes to pngjs/jpeg-js with no caps — a 33-byte PNG declaring 100000×100000 would have made the decoder allocate ~40 GB (OOM / function crash). Fixed in depth:
+- `src/lib/checks/image-limits.ts` (new, pure, client+server shared): `MAX_IMAGE_BYTES` 10 MB, `MAX_IMAGE_PIXELS` 30 MP, `MAX_IMAGE_DIMENSION` 12000 px/side; header probes (PNG IHDR at fixed offset; JPEG SOF marker scan, bounded to first 64 KB) — dimensions read **without decoding a single pixel**; `assertImageSafe()` throws `ImageRejectedError` with reason + detail.
+- `src/lib/checks/image.ts`: `decodeImage()` now guards before decode; sniffing extracted to the shared module.
+- `src/lib/checks/run.ts`: `ImageRejectedError` → a specific honest finding ("Image rejected by safety checks", high, needs_human, routed to reviewer) + `outcome: incomplete` banner — instead of the generic "internal error" failure.
+- Client: upload form rejects oversize/empty/non-PNG-JPEG files **before any DB row is created** (the "max 10 MB" label was previously aspirational — nothing enforced it; webp was accepted but undecodable — dropped).
+- Storage front door: `supabase/migrations/0002_image_limits.sql` caps the private `content` bucket at 10 MB (`file_size_limit`), applied live to the local stack via docker exec.
+- Verified LIVE: 33-byte 50000×50000 bomb uploaded through the real RLS path → storage accepted it (as bombs do) → pipeline rejected pre-decode in 137 ms → finding + incomplete banner rendered on the item page → test rows + object cleaned up. 8 new unit tests (41 total, all green).
+
+**Timestamps showing "random" times:** every rendered time used `toLocaleString()` with runtime defaults — IST on the local Mac but **UTC on Vercel (5½ h off)**, plus server/client hydration mismatches. Fix: `src/lib/format.ts` (new) pins one set of `Intl.DateTimeFormat` instances to `en-IN` + `Asia/Kolkata`; all six call sites (items list, review queue, detail header, comments, decisions, check start→finish) now render identical IST strings on server and client. Verified: DB `2026-10-24T19:43Z` renders as "25 Oct, 1:13 am" = the true upload wall-clock.
+
+- **25 Oct 2026 — DEPLOYED to production (instant-navigation + polish + restrictor + IST times).**
+  - Method: Vercel REST API files deploy (token pasted in-session, verified /v2/user, project `vcon` prj_9OOx5WzsxDQXR5S4hixUYdOfdV86; 85 files / 516 KB; `.env*` excluded — flow: `POST /v2/files` per file (sha1 digest) → `POST /v13/deployments?skipAutoDetectionConfirmation=1` target=production → poll → READY).
+  - Deployment `dpl_Dd5pCxXSKFodWwV6we1zzSyNR5xV` → alias **vcon-six.vercel.app** (production, took over immediately).
+  - Build logs confirm the new pipeline ran: "Cache Components enabled", "Partial Prefetching enabled", 13 static pages.
+  - Live smoke: `/login` 200 with `x-nextjs-prerender: 1` (static shell from edge), `/items` unauthenticated → 307 in ~0.29 s (edge proxy guard). Warm `/login` TTFB 0.29–0.51 s from a cross-region vantage; India users hit the `bom1` edge.
+  - Token deleted after use. **Pending for cloud DB** (needs Supabase SQL editor access): `update storage.buckets set file_size_limit = 10485760 where id = 'content';` — the 10 MB storage front door; app-level guards already enforce it regardless.

@@ -10,9 +10,6 @@ import { createClient } from "@/lib/supabase/server";
 
 import { UploadForm } from "./upload-form";
 
-// Session-reading page (Cache Components opt-out).
-export const instant = false;
-
 export default async function UploadPage() {
   const supabase = await createClient();
   const {

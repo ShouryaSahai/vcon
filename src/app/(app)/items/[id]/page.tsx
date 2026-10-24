@@ -14,14 +14,13 @@ import {
 } from "@/components/indicators";
 import type { DecisionAction } from "@/lib/db-types";
 import { createClient } from "@/lib/supabase/server";
+import { getKitContext } from "@/lib/cached";
+import { fmtDateTime, fmtDateTimeFull, fmtTime, fmtTimeShort } from "@/lib/format";
 import { DECISION_LABELS, RULE_TYPE_LABELS } from "@/lib/types";
 
 import { acceptFix, addComment, decideItem, overrideFinding, rejectFix } from "./actions";
 import { CopyButton } from "./copy-button";
 import { ResubmitForm } from "./resubmit-form";
-
-// Session-reading page (Cache Components opt-out).
-export const instant = false;
 
 const CHECKER_LABELS: Record<string, string> = {
   banned_term: "Banned terms",
@@ -48,11 +47,13 @@ export default async function ItemPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, role")
-    .eq("id", user.id)
-    .maybeSingle();
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token ?? "";
+
+  const [{ data: profile }, { data: item }] = await Promise.all([
+    supabase.from("profiles").select("id, role").eq("id", user.id).maybeSingle(),
+    supabase.from("content_items").select("*").eq("id", id).maybeSingle(),
+  ]);
   if (!profile) redirect("/login");
   const role = profile.role;
   const isCreator = role === "creator" || role === "admin";
@@ -60,11 +61,6 @@ export default async function ItemPage({
   const isApprover = role === "approver" || role === "admin";
 
   // RLS scopes this read to the item's workspace.
-  const { data: item } = await supabase
-    .from("content_items")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
   if (!item) {
     return (
       <div className="mx-auto max-w-xl pt-4">
@@ -81,24 +77,34 @@ export default async function ItemPage({
     );
   }
 
+  // Kit rules + version are cached per session (published versions are
+  // immutable; publishing revalidates the tag).
   const [
-    { data: version },
-    { data: rules },
+    kit,
     { data: findings },
     { data: comments },
     { data: decisions },
     { data: children },
     { data: checks },
   ] = await Promise.all([
-    supabase.from("kit_versions").select("version_number, status").eq("id", item.kit_version_id).maybeSingle(),
-    supabase.from("kit_rules").select("id, name, rule_type").eq("kit_version_id", item.kit_version_id),
+    accessToken
+      ? getKitContext(accessToken, item.kit_version_id)
+      : Promise.resolve({ version: null, rules: [] }),
     supabase.from("findings").select("*").eq("content_item_id", item.id).order("created_at"),
     supabase.from("comments").select("id, author_id, body, created_at").eq("content_item_id", item.id).order("created_at", { ascending: true }),
     supabase.from("decision_log").select("id, finding_id, actor_id, action, reason, created_at").eq("content_item_id", item.id).order("created_at", { ascending: false }),
     supabase.from("content_items").select("id, created_at, status").eq("parent_item_id", item.id).order("created_at", { ascending: false }),
     supabase.from("checks").select("id, status, error, summary, started_at, finished_at").eq("content_item_id", item.id).order("created_at", { ascending: false }),
   ]);
-  const ruleMap = new Map((rules ?? []).map((r) => [r.id, r]));
+  const { version, rules } = kit;
+  const ruleMap = new Map(rules.map((r) => [r.id, r]));
+  const sortedFindings = [...(findings ?? [])].sort((a, b) => {
+    const rank = { high: 0, medium: 1, low: 2 } as Record<string, number>;
+    return (
+      (rank[a.severity] ?? 1) - (rank[b.severity] ?? 1) ||
+      a.created_at.localeCompare(b.created_at)
+    );
+  });
 
   // Actor names for comments + decisions.
   const authorIds = new Set<string>();
@@ -172,7 +178,7 @@ export default async function ItemPage({
           </div>
         </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span>{new Date(item.created_at).toLocaleString()}</span>
+          <span>{fmtDateTimeFull(item.created_at)}</span>
           <span className="h-[3px] w-[3px] rounded-full bg-border" />
           <span>
             Checked against <span className="font-medium text-foreground">kit v{version?.version_number ?? "?"}</span>{" "}
@@ -282,7 +288,7 @@ export default async function ItemPage({
                 </p>
               ) : (
                 <div className="space-y-2.5">
-                  {findings.map((finding) => {
+                  {sortedFindings.map((finding) => {
                     const rule = finding.kit_rule_id ? ruleMap.get(finding.kit_rule_id) : null;
                     const loc = (finding.location ?? {}) as {
                       type?: string;
@@ -470,7 +476,7 @@ export default async function ItemPage({
                   <div key={comment.id} className="rounded-lg bg-secondary/70 px-3 py-2">
                     <p className="text-[11px] text-muted-foreground">
                       {nameOf.get(comment.author_id) ?? "Member"} ·{" "}
-                      {new Date(comment.created_at).toLocaleString()}
+                      {fmtDateTime(comment.created_at)}
                     </p>
                     <p className="mt-1 text-[13px]">{comment.body}</p>
                   </div>
@@ -493,7 +499,7 @@ export default async function ItemPage({
         </div>
 
         {/* ======== RIGHT RAIL: verification, verdict, history ======== */}
-        <div className="space-y-4">
+        <div className="space-y-4 lg:sticky lg:top-5 self-start">
           <section className="rounded-xl border border-border bg-card">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <span className="text-[13px] font-semibold">Verification</span>
@@ -611,10 +617,7 @@ export default async function ItemPage({
                         )}
                       </span>
                       <span className="ml-auto whitespace-nowrap text-[11px] text-muted-foreground">
-                        {new Date(decision.created_at).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {fmtTimeShort(decision.created_at)}
                       </span>
                     </li>
                   ))
@@ -643,9 +646,9 @@ export default async function ItemPage({
                       {check.status}
                     </span>
                     <span className="text-[10.5px] text-muted-foreground">
-                      {check.started_at ? new Date(check.started_at).toLocaleTimeString() : "—"}
+                      {check.started_at ? fmtTime(check.started_at) : "—"}
                       {check.finished_at
-                        ? ` → ${new Date(check.finished_at).toLocaleTimeString()}`
+                        ? ` → ${fmtTime(check.finished_at)}`
                         : " → …"}
                     </span>
                   </div>

@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/lib/db-types";
 
+import { assertImageSafe, sniffImageKind, type ImageKind } from "./image-limits";
 import type { RasterImage } from "./color";
 
 /** Downloads an object from the content bucket with the caller's session (RLS applies). */
@@ -19,14 +20,24 @@ export async function downloadImage(
   return new Uint8Array(await data.arrayBuffer());
 }
 
+/**
+ * Decode an uploaded image for the colour check, behind the safety guards
+ * (byte cap + header dimension caps). A malicious "decompression bomb" —
+ * a tiny file declaring huge dimensions — is rejected before the decoder can
+ * allocate anything; the pipeline turns ImageRejectedError into an honest
+ * needs_human finding instead of a crash.
+ */
 export function decodeImage(bytes: Uint8Array): RasterImage {
-  // Content sniffing — filenames and content types lie.
-  const isPng =
-    bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
-  if (isPng) {
+  assertImageSafe(bytes);
+
+  const kind: ImageKind | null = sniffImageKind(bytes);
+  if (kind === "png") {
     const png = PNG.sync.read(Buffer.from(bytes));
     return { width: png.width, height: png.height, data: new Uint8Array(png.data) };
   }
-  const decoded = jpeg.decode(Buffer.from(bytes), { useTArray: true, formatAsRGBA: true });
-  return { width: decoded.width, height: decoded.height, data: new Uint8Array(decoded.data) };
+  if (kind === "jpeg") {
+    const decoded = jpeg.decode(Buffer.from(bytes), { useTArray: true, formatAsRGBA: true });
+    return { width: decoded.width, height: decoded.height, data: new Uint8Array(decoded.data) };
+  }
+  throw new Error("Unsupported image format — only PNG and JPEG are checked for colour.");
 }

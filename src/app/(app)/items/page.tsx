@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Plus } from "lucide-react";
 
 import { StatusPill } from "@/components/indicators";
 import { createClient } from "@/lib/supabase/server";
 import type { Severity } from "@/lib/db-types";
 
 import { ItemsBrowser, type ListItem } from "./items-browser";
-
-// Session-reading page (Cache Components opt-out).
-export const instant = false;
 
 export default async function ItemsPage() {
   const supabase = await createClient();
@@ -89,16 +87,17 @@ export default async function ItemsPage() {
     <div className="mx-auto max-w-[1120px] space-y-5 pb-12">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[17px] font-semibold tracking-tight">Content items</h1>
+          <h1 className="text-[19px] font-semibold tracking-tight">Content items</h1>
           <p className="mt-1 text-[12.5px] text-muted-foreground">
             Everything this workspace has checked against the published kit.
           </p>
         </div>
         <Link
           href="/upload"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-[12.5px] font-semibold text-primary-foreground hover:bg-primary/90"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-[12.5px] font-semibold text-primary-foreground shadow-sm shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20 active:translate-y-px"
         >
-          + New check
+          <Plus className="h-3.5 w-3.5" />
+          New check
         </Link>
       </div>
 

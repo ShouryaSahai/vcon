@@ -4,9 +4,7 @@ import { redirect } from "next/navigation";
 import { ConfidenceMeter, SevChip, SevRail, StatusPill } from "@/components/indicators";
 import { createClient } from "@/lib/supabase/server";
 import { STATUS_VARIANT } from "@/lib/types";
-
-// Session-reading page (Cache Components opt-out).
-export const instant = false;
+import { fmtDateTime } from "@/lib/format";
 
 export default async function ReviewPage() {
   const supabase = await createClient();
@@ -164,12 +162,7 @@ export default async function ReviewPage() {
                     <StatusPill status={item.status} />
                   </span>
                   <span className="text-[11px] text-muted-foreground">
-                    {new Date(item.created_at).toLocaleString([], {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {fmtDateTime(item.created_at)}
                   </span>
                 </Link>
               ))}

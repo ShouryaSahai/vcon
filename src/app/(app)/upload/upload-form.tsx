@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { ContextType } from "@/lib/db-types";
 import { createClient } from "@/lib/supabase/client";
+import { MAX_IMAGE_BYTES, formatBytes } from "@/lib/checks/image-limits";
 
 const CONTEXTS = [
   { value: "instagram_post", label: "Instagram post" },
@@ -18,6 +19,18 @@ const CONTEXTS = [
   { value: "email", label: "Email" },
   { value: "other", label: "Other" },
 ] as const;
+
+/** Front-door upload guard — same limits the server enforces before decoding. */
+function imageFileRejection(file: File): string | null {
+  if (file.size > MAX_IMAGE_BYTES) {
+    return `That image is ${formatBytes(file.size)} — the limit is ${formatBytes(MAX_IMAGE_BYTES)}.`;
+  }
+  if (file.size === 0) return "That file is empty.";
+  if (file.type && !["image/png", "image/jpeg"].includes(file.type)) {
+    return "Only PNG and JPEG images are supported.";
+  }
+  return null;
+}
 
 const selectClass =
   "h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -54,6 +67,13 @@ export function UploadForm({
     if (kind === "image" && altText.trim().length < 20) {
       setError("Alt text is required (at least 20 characters) — describe the image for screen readers.");
       return;
+    }
+    if (kind === "image" && file) {
+      const rejection = imageFileRejection(file);
+      if (rejection) {
+        setError(rejection);
+        return;
+      }
     }
 
     setBusy(true);
@@ -170,13 +190,24 @@ export function UploadForm({
           ) : (
             <div className="space-y-4">
               <div className="space-y-1">
-                <Label htmlFor="file">Image (max 10 MB)</Label>
+                <Label htmlFor="file">Image (max 10 MB, PNG or JPEG)</Label>
                 <Input
                   id="file"
                   ref={fileInputRef}
                   type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                  accept="image/png,image/jpeg"
+                  onChange={(event) => {
+                    const selected = event.target.files?.[0] ?? null;
+                    const rejection = selected ? imageFileRejection(selected) : null;
+                    if (rejection) {
+                      setFile(null);
+                      setError(rejection);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                      return;
+                    }
+                    setError(null);
+                    setFile(selected);
+                  }}
                 />
               </div>
               <div className="space-y-1">

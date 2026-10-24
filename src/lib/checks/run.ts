@@ -12,6 +12,7 @@ import {
 } from "./deterministic";
 import { checkBrandColor, type RasterImage } from "./color";
 import { decodeImage, downloadImage } from "./image";
+import { ImageRejectedError } from "./image-limits";
 import { routeFinding } from "./routing";
 
 export type CheckerOutcome = "ran" | "skipped" | "failed" | "not_applicable";
@@ -66,6 +67,7 @@ export async function runChecks(
   // ===== Deterministic checkers ==============================================
   const failedTypes = new Set<string>();
   const seenTypes = new Set<string>();
+  let rejectedImageMessage: string | null = null;
 
   for (const rule of activeRules) {
     if (!(DETERMINISTIC_TYPES as readonly string[]).includes(rule.rule_type)) continue;
@@ -96,6 +98,9 @@ export async function runChecks(
     } catch (error) {
       failedTypes.add(rule.rule_type);
       console.error(`[checks] ${rule.rule_type} checker failed:`, error);
+      if (error instanceof ImageRejectedError) {
+        rejectedImageMessage = error.message;
+      }
     }
   }
 
@@ -106,13 +111,17 @@ export async function runChecks(
     }
     if (failedTypes.has(type)) {
       checkers[type] = "failed";
-      incompleteReasons.push(`The ${type.replace(/_/g, " ")} check could not run.`);
+      incompleteReasons.push(
+        rejectedImageMessage ?? `The ${type.replace(/_/g, " ")} check could not run.`,
+      );
       seeds.push({
         kit_rule_id: null,
         source: "rule_engine",
-        title: "Check could not run",
-        explanation: `The ${type.replace(/_/g, " ")} check failed with an internal error. A human must review this content manually — this is NOT a pass.`,
-        severity: "medium",
+        title: rejectedImageMessage ? "Image rejected by safety checks" : "Check could not run",
+        explanation: rejectedImageMessage
+          ? `${rejectedImageMessage} The colour check did not run. A human must review this content manually — this is NOT a pass.`
+          : `The ${type.replace(/_/g, " ")} check failed with an internal error. A human must review this content manually — this is NOT a pass.`,
+        severity: rejectedImageMessage ? "high" : "medium",
         confidence: null,
         suggested_fix: null,
         location: null,

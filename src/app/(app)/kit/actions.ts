@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 
 import type { Json, KitRule, RuleType, Severity } from "@/lib/db-types";
 import { RULE_TYPES, SEVERITIES } from "@/lib/types";
@@ -69,6 +69,7 @@ export async function createKit(): Promise<void> {
     .from("kit_versions")
     .insert({ kit_id: kit.id, version_number: 1, status: "draft" });
 
+  updateTag(`ws-${ctx.workspaceId}`);
   revalidatePath("/kit");
 }
 
@@ -325,6 +326,8 @@ export async function publishDraft(
     .eq("id", kitId);
   if (currentError) return { error: currentError.message };
 
+  updateTag(`kitver-${draftId}`);
+  updateTag(`ws-${ctx.workspaceId}`);
   revalidatePath("/kit");
   return { message: `v${draft.version_number} published — it is now the version checks run against.` };
 }
