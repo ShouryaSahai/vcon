@@ -121,12 +121,12 @@ export async function runAiChecks(
   aiRules: KitRule[],
   item: { context_type: string; text_content: string | null },
   opts?: { call?: AiCaller },
-): Promise<FindingSeed[]> {
+): Promise<{ seeds: FindingSeed[]; status: "ran" | "failed"; error?: string }> {
   const text = (item.text_content ?? "").trim();
-  if (!text || aiRules.length === 0) return [];
+  if (!text || aiRules.length === 0) return { seeds: [], status: "ran" };
 
   const call = opts?.call ?? defaultAiCaller();
-  if (!call) return [];
+  if (!call) return { seeds: [], status: "ran" };
 
   const rulesBlock = aiRules
     .map(
@@ -175,12 +175,16 @@ export async function runAiChecks(
   }
 
   if (!validated) {
-    return [
-      needsHumanFinding(
-        "AI check could not complete",
-        `The model output was unusable after one retry (${lastError}). A human should review this content manually.`,
-      ),
-    ];
+    return {
+      seeds: [
+        needsHumanFinding(
+          "AI check could not complete",
+          `The model output was unusable after one retry (${lastError}). A human should review this content manually.`,
+        ),
+      ],
+      status: "failed",
+      error: lastError,
+    };
   }
 
   const byRef = new Map(aiRules.map((r) => [r.name, r]));
@@ -224,5 +228,5 @@ export async function runAiChecks(
     }
   }
 
-  return seeds;
+  return { seeds, status: "ran" };
 }

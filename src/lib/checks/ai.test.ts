@@ -43,12 +43,13 @@ const validOutput = {
 describe("runAiChecks", () => {
   it("keeps findings whose citations resolve to real rules", async () => {
     const call: AiCaller = async () => validOutput;
-    const seeds = await runAiChecks([claimRule], item, { call });
-    expect(seeds).toHaveLength(1);
-    expect(seeds[0].kit_rule_id).toBe("rule-c12");
-    expect(seeds[0].source).toBe("ai");
-    expect(seeds[0].confidence).toBe(0.92);
-    expect(seeds[0].needs_human).toBe(false);
+    const r = await runAiChecks([claimRule], item, { call });
+    expect(r.status).toBe("ran");
+    expect(r.seeds).toHaveLength(1);
+    expect(r.seeds[0].kit_rule_id).toBe("rule-c12");
+    expect(r.seeds[0].source).toBe("ai");
+    expect(r.seeds[0].confidence).toBe(0.92);
+    expect(r.seeds[0].needs_human).toBe(false);
   });
 
   it("downgrades uncited findings to needs_human with no citation", async () => {
@@ -64,12 +65,12 @@ describe("runAiChecks", () => {
         },
       ],
     });
-    const seeds = await runAiChecks([claimRule], item, { call });
-    expect(seeds).toHaveLength(1);
-    expect(seeds[0].kit_rule_id).toBeNull();
-    expect(seeds[0].needs_human).toBe(true);
-    expect(seeds[0].assigned_to_role).toBe("reviewer");
-    expect(seeds[0].explanation).toContain("does not exist");
+    const r = await runAiChecks([claimRule], item, { call });
+    expect(r.seeds).toHaveLength(1);
+    expect(r.seeds[0].kit_rule_id).toBeNull();
+    expect(r.seeds[0].needs_human).toBe(true);
+    expect(r.seeds[0].assigned_to_role).toBe("reviewer");
+    expect(r.seeds[0].explanation).toContain("does not exist");
   });
 
   it("retries once when the first call throws", async () => {
@@ -79,21 +80,24 @@ describe("runAiChecks", () => {
       if (calls === 1) throw new Error("malformed JSON");
       return validOutput;
     };
-    const seeds = await runAiChecks([claimRule], item, { call });
+    const r = await runAiChecks([claimRule], item, { call });
     expect(calls).toBe(2);
-    expect(seeds).toHaveLength(1);
-    expect(seeds[0].kit_rule_id).toBe("rule-c12");
+    expect(r.status).toBe("ran");
+    expect(r.seeds).toHaveLength(1);
+    expect(r.seeds[0].kit_rule_id).toBe("rule-c12");
   });
 
-  it("returns one needs_human finding after two unusable calls", async () => {
+  it("returns a failed status and needs_human finding after two unusable calls", async () => {
     const call: AiCaller = async () => {
       throw new Error("still broken");
     };
-    const seeds = await runAiChecks([claimRule], item, { call });
-    expect(seeds).toHaveLength(1);
-    expect(seeds[0].title).toBe("AI check could not complete");
-    expect(seeds[0].needs_human).toBe(true);
-    expect(seeds[0].kit_rule_id).toBeNull();
+    const r = await runAiChecks([claimRule], item, { call });
+    expect(r.status).toBe("failed");
+    expect(r.error).toContain("still broken");
+    expect(r.seeds).toHaveLength(1);
+    expect(r.seeds[0].title).toBe("AI check could not complete");
+    expect(r.seeds[0].needs_human).toBe(true);
+    expect(r.seeds[0].kit_rule_id).toBeNull();
   });
 
   it("returns needs_human when output fails the schema twice", async () => {
@@ -102,15 +106,17 @@ describe("runAiChecks", () => {
       calls += 1;
       return { findings: "not an array" }; // schema-invalid, no throw
     };
-    const seeds = await runAiChecks([claimRule], item, { call });
+    const r = await runAiChecks([claimRule], item, { call });
     expect(calls).toBe(2);
-    expect(seeds).toHaveLength(1);
-    expect(seeds[0].needs_human).toBe(true);
+    expect(r.status).toBe("failed");
+    expect(r.seeds).toHaveLength(1);
+    expect(r.seeds[0].needs_human).toBe(true);
   });
 
   it("does nothing without a caller or credentials", async () => {
-    const seeds = await runAiChecks([claimRule], item);
-    expect(seeds).toHaveLength(0);
+    const r = await runAiChecks([claimRule], item);
+    expect(r.seeds).toHaveLength(0);
+    expect(r.status).toBe("ran");
   });
 
   it("passes all kit rules and the content in the prompt", async () => {

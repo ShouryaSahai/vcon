@@ -43,17 +43,22 @@ export default async function ReviewPage() {
     );
   }
 
-  // 1) Items in the review flow + 2) findings routed to reviewers — in parallel.
-  const [{ data: awaiting }, { data: openFindings }] = await Promise.all([
+  // 1) Items awaiting a verdict + 2) findings routed to reviewers — in parallel.
+  const [{ data: awaiting }, { data: withCreators }, { data: openFindings }] = await Promise.all([
     supabase
       .from("content_items")
       .select("id, source_kind, context_type, status, created_at")
-      .in("status", ["in_review", "needs_changes", "returned"])
+      .eq("status", "in_review")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("content_items")
+      .select("id, source_kind, context_type, status, created_at")
+      .in("status", ["needs_changes", "returned"])
       .order("created_at", { ascending: false }),
     supabase
       .from("findings")
       .select(
-        "id, content_item_id, title, explanation, severity, needs_human, created_at, kit_rule_id, status",
+        "id, content_item_id, title, explanation, severity, needs_human, created_at, kit_rule_id, status, confidence",
       )
       .eq("assigned_to_role", "reviewer")
       .eq("status", "open")
@@ -119,6 +124,9 @@ export default async function ReviewPage() {
                   </div>
                   <p className="mt-1 text-sm text-slate-600">{finding.explanation}</p>
                   <p className="mt-1 text-xs text-slate-500">
+                    {finding.confidence !== null && (
+                      <span className="mr-2">Confidence: {finding.confidence} ·</span>
+                    )}
                     {ruleName ? `Rule: ${ruleName} · ` : ""}
                     {item ? (
                       <Link
@@ -142,8 +150,8 @@ export default async function ReviewPage() {
         <CardHeader>
           <CardTitle>Awaiting final verdict</CardTitle>
           <CardDescription>
-            {awaiting?.length ?? 0} item{(awaiting?.length ?? 0) === 1 ? "" : "s"} in the review
-            flow.
+            {awaiting?.length ?? 0} item{(awaiting?.length ?? 0) === 1 ? "" : "s"} fully checked
+            and waiting for approval.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -151,6 +159,42 @@ export default async function ReviewPage() {
             <p className="text-sm text-slate-500">The queue is empty.</p>
           ) : (
             awaiting.map((item) => (
+              <Link
+                key={item.id}
+                href={`/items/${item.id}`}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 hover:border-slate-300"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-slate-900">
+                    {item.source_kind === "text" ? "Text" : "Image"} ·{" "}
+                    {item.context_type.replace("_", " ")}
+                  </span>
+                  <Badge variant={STATUS_VARIANT[item.status]}>
+                    {item.status.replace("_", " ")}
+                  </Badge>
+                </div>
+                <span className="text-xs text-slate-500">
+                  {new Date(item.created_at).toLocaleString()}
+                </span>
+              </Link>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>With creators</CardTitle>
+          <CardDescription>
+            Items returned for changes or still carrying creator-fixable findings — shown for
+            visibility, not awaiting your verdict.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {!withCreators || withCreators.length === 0 ? (
+            <p className="text-sm text-slate-500">Nothing is with creators right now.</p>
+          ) : (
+            withCreators.map((item) => (
               <Link
                 key={item.id}
                 href={`/items/${item.id}`}

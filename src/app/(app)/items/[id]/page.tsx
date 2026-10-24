@@ -114,6 +114,13 @@ export default async function ItemPage({
   }
 
   const openCount = (findings ?? []).filter((f) => f.status === "open").length;
+  const latestCheck = checks?.[0] ?? null;
+  const latestSummary = (latestCheck?.summary ?? null) as {
+    outcome?: string;
+    incompleteReasons?: string[];
+  } | null;
+  const incomplete =
+    latestCheck?.status === "done" && latestSummary?.outcome === "incomplete";
   const canResubmit =
     isCreator &&
     (item.created_by === user.id || role === "admin") &&
@@ -195,13 +202,30 @@ export default async function ItemPage({
         </CardContent>
       </Card>
 
+      {incomplete && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-900">
+            ⚠️ Check incomplete — this item is NOT a verified pass
+          </p>
+          <ul className="mt-1 list-disc pl-5 text-sm text-amber-900/90">
+            {(latestSummary?.incompleteReasons ?? []).map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Findings</CardTitle>
           <CardDescription>
-            {findings && findings.length > 0
-              ? `${findings.length} finding${findings.length === 1 ? "" : "s"} — every flag cites its rule.`
-              : "No findings — the content matched the brand kit."}
+            {findings === null
+              ? "Could not load findings — refresh to retry."
+              : findings.length > 0
+                ? `${findings.length} finding${findings.length === 1 ? "" : "s"} — deterministic and cited AI flags trace to their kit rule; anything uncited is routed to human review.`
+                : incomplete
+                  ? "No findings recorded, but the latest check did not complete — see the warning above."
+                  : "No findings — all configured checks ran."}
           </CardDescription>
         </CardHeader>
         {findings && findings.length > 0 && (

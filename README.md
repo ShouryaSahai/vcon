@@ -5,11 +5,17 @@ Pre-publication brand governance platform — FutureStack Hackathon, Round 2 bui
 it goes public. Every flag is explained, cites its rule, and is decided by a
 human. See [PLAN.md](./PLAN.md) for the full build plan.
 
+**Live:** https://vcon-six.vercel.app · Demo logins in §5 of
+[docs/acceptance.md](./docs/acceptance.md) (demo data only).
+
 ## Stack
 
 - **Next.js 16** (App Router, TypeScript, Tailwind v4) on Vercel
 - **Supabase** — Postgres (RLS everywhere), Auth, Storage
-- **Gemini** via the Vercel AI SDK from M6 (deterministic checks run first)
+- **Gemini** — deterministic checks run first; tone/claim/terminology rules are
+  judged by the model via structured REST calls (thinking disabled, 45 s
+  timeout), with citations enforced in code — an uncited AI finding is routed
+  to human review, never counted
 - pnpm
 
 ## Quickstart
@@ -70,11 +76,16 @@ Providers → Email → turn off "Confirm email"** (or confirm via the inbox lin
 
 ## Deploy (Vercel)
 
-1. Push to GitHub.
-2. Vercel → **Add New Project** → import the repo (framework auto-detected).
-3. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in
-   **Settings → Environment Variables** (add the AI keys when M6 lands).
-4. Deploy — every push to `main` ships; PRs get preview links.
+Current setup: production deployments are created from the repository files
+via the Vercel API. To switch to auto-deploy on push, install the Vercel
+GitHub App (Vercel dashboard → Git Integrations) and link the `vcon` project
+to `ShouryaSahai/vcon` — after that, every push to `main` ships and PRs get
+preview links.
+
+Environment variables the deployment needs: `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`, plus `GEMINI_API_KEY` and `GEMINI_MODEL`
+(the AI checker degrades to explicit `needs human` findings when the key is
+absent — it never reports a silent pass).
 
 ## Project structure
 
@@ -95,5 +106,6 @@ src/
 
 ## Status
 
-Milestone tracker lives in [PLAN.md](./PLAN.md) §8. Current: **M0** (scaffold,
-deploy, auth with roles).
+Milestone tracker lives in [PLAN.md](./PLAN.md) §8. Current: **deployed through
+M9** — live at https://vcon-six.vercel.app (acceptance run in
+[docs/acceptance.md](./docs/acceptance.md) §5).
