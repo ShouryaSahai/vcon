@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 
 import { ConfidenceMeter, SevChip, SevRail, StatusPill } from "@/components/indicators";
 import { createClient } from "@/lib/supabase/server";
-import { STATUS_VARIANT } from "@/lib/types";
 import { fmtDateTime } from "@/lib/format";
 
 export default async function ReviewPage() {

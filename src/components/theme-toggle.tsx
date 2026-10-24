@@ -1,22 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 /**
  * Light/dark toggle. Persists to localStorage ("vcon-theme"); light is the
  * default. The pre-paint script in the root layout applies the stored theme
  * before hydration to avoid a flash.
+ *
+ * The html.dark class is owned by that script (and this toggle), so it is read
+ * as an external store: the server snapshot is "unknown" (null — moon icon,
+ * matching the pre-hydration markup), and the live snapshot tracks the class
+ * via MutationObserver, so the icon corrects itself right after hydration and
+ * on any class change — without a setState-in-effect.
  */
-export function ThemeToggle() {
-  const [dark, setDark] = useState<boolean | null>(null);
+function subscribeToHtmlClass(onChange: () => void) {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
+  return () => observer.disconnect();
+}
 
-  useEffect(() => {
-    setDark(document.documentElement.classList.contains("dark"));
-  }, []);
+export function ThemeToggle() {
+  const dark = useSyncExternalStore<boolean | null>(
+    subscribeToHtmlClass,
+    () => document.documentElement.classList.contains("dark"),
+    () => null,
+  );
 
   function toggle() {
     const next = !(dark ?? false);
-    setDark(next);
     document.documentElement.classList.toggle("dark", next);
     try {
       localStorage.setItem("vcon-theme", next ? "dark" : "light");

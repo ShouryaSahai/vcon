@@ -16,7 +16,7 @@ import type { DecisionAction } from "@/lib/db-types";
 import { createClient } from "@/lib/supabase/server";
 import { getKitContext } from "@/lib/cached";
 import { fmtDateTime, fmtDateTimeFull, fmtTime, fmtTimeShort } from "@/lib/format";
-import { DECISION_LABELS, RULE_TYPE_LABELS } from "@/lib/types";
+import { DECISION_LABELS } from "@/lib/types";
 
 import { acceptFix, addComment, decideItem, overrideFinding, rejectFix } from "./actions";
 import { CopyButton } from "./copy-button";

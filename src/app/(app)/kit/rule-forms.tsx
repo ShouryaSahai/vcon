@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -177,13 +177,17 @@ function RuleForm({
     {},
   );
 
-  useEffect(() => {
+  // Reset the blank add form once a save returns a message. Done during render
+  // (React's "adjust state when a value changes" pattern) rather than in an
+  // effect — same value-comparison semantics, no cascading render.
+  const [savedMessage, setSavedMessage] = useState(state.message);
+  if (state.message !== savedMessage) {
+    setSavedMessage(state.message);
     if (state.message && mode === "add") {
       setName("");
       setFields(EMPTY_FIELDS[ruleType]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.message]);
+  }
 
   const idPrefix = rule?.id ?? "new";
 
@@ -470,10 +474,13 @@ function PublishControls({
     {},
   );
   const [armed, setArmed] = useState(false);
-
-  useEffect(() => {
+  // Disarm the confirm step once a publish succeeds — adjusted during render
+  // (React's "adjust state when a value changes" pattern), not in an effect.
+  const [publishedMessage, setPublishedMessage] = useState(state.message);
+  if (state.message !== publishedMessage) {
+    setPublishedMessage(state.message);
     if (state.message) setArmed(false);
-  }, [state.message]);
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-3">
