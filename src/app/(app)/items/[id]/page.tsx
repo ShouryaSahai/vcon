@@ -76,47 +76,24 @@ export default async function ItemPage({
     );
   }
 
-  const { data: version } = await supabase
-    .from("kit_versions")
-    .select("version_number, status")
-    .eq("id", item.kit_version_id)
-    .maybeSingle();
-
-  const { data: rules } = await supabase
-    .from("kit_rules")
-    .select("id, name, rule_type")
-    .eq("kit_version_id", item.kit_version_id);
+  const [
+    { data: version },
+    { data: rules },
+    { data: findings },
+    { data: comments },
+    { data: decisions },
+    { data: children },
+    { data: checks },
+  ] = await Promise.all([
+    supabase.from("kit_versions").select("version_number, status").eq("id", item.kit_version_id).maybeSingle(),
+    supabase.from("kit_rules").select("id, name, rule_type").eq("kit_version_id", item.kit_version_id),
+    supabase.from("findings").select("*").eq("content_item_id", item.id).order("created_at"),
+    supabase.from("comments").select("id, author_id, body, created_at").eq("content_item_id", item.id).order("created_at", { ascending: true }),
+    supabase.from("decision_log").select("id, finding_id, actor_id, action, reason, created_at").eq("content_item_id", item.id).order("created_at", { ascending: false }),
+    supabase.from("content_items").select("id, created_at, status").eq("parent_item_id", item.id).order("created_at", { ascending: false }),
+    supabase.from("checks").select("id, status, error, summary, started_at, finished_at").eq("content_item_id", item.id).order("created_at", { ascending: false }),
+  ]);
   const ruleMap = new Map((rules ?? []).map((r) => [r.id, r]));
-
-  const { data: findings } = await supabase
-    .from("findings")
-    .select("*")
-    .eq("content_item_id", item.id)
-    .order("created_at");
-
-  const { data: comments } = await supabase
-    .from("comments")
-    .select("id, author_id, body, created_at")
-    .eq("content_item_id", item.id)
-    .order("created_at", { ascending: true });
-
-  const { data: decisions } = await supabase
-    .from("decision_log")
-    .select("id, finding_id, actor_id, action, reason, created_at")
-    .eq("content_item_id", item.id)
-    .order("created_at", { ascending: false });
-
-  const { data: children } = await supabase
-    .from("content_items")
-    .select("id, created_at, status")
-    .eq("parent_item_id", item.id)
-    .order("created_at", { ascending: false });
-
-  const { data: checks } = await supabase
-    .from("checks")
-    .select("id, status, error, summary, started_at, finished_at")
-    .eq("content_item_id", item.id)
-    .order("created_at", { ascending: false });
 
   // Actor names for comments + decisions.
   const authorIds = new Set<string>();

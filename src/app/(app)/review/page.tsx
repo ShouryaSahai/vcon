@@ -43,40 +43,41 @@ export default async function ReviewPage() {
     );
   }
 
-  // 1) Items waiting in the review flow.
-  const { data: awaiting } = await supabase
-    .from("content_items")
-    .select("id, source_kind, context_type, status, created_at")
-    .in("status", ["in_review", "needs_changes", "returned"])
-    .order("created_at", { ascending: false });
+  // 1) Items in the review flow + 2) findings routed to reviewers — in parallel.
+  const [{ data: awaiting }, { data: openFindings }] = await Promise.all([
+    supabase
+      .from("content_items")
+      .select("id, source_kind, context_type, status, created_at")
+      .in("status", ["in_review", "needs_changes", "returned"])
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("findings")
+      .select(
+        "id, content_item_id, title, explanation, severity, needs_human, created_at, kit_rule_id, status",
+      )
+      .eq("assigned_to_role", "reviewer")
+      .eq("status", "open")
+      .order("created_at", { ascending: false }),
+  ]);
 
-  // 2) Findings routed to reviewers (claims, facts, low-confidence flags).
-  const { data: openFindings } = await supabase
-    .from("findings")
-    .select(
-      "id, content_item_id, title, explanation, severity, needs_human, created_at, kit_rule_id, status",
-    )
-    .eq("assigned_to_role", "reviewer")
-    .eq("status", "open")
-    .order("created_at", { ascending: false });
-
-  const { data: routedItems } = openFindings?.length
-    ? await supabase
-        .from("content_items")
-        .select("id, source_kind, context_type, status")
-        .in("id", [...new Set(openFindings.map((f) => f.content_item_id))])
-    : { data: [] };
+  const [{ data: routedItems }, { data: routedRules }] = await Promise.all([
+    openFindings?.length
+      ? supabase
+          .from("content_items")
+          .select("id, source_kind, context_type, status")
+          .in("id", [...new Set(openFindings.map((f) => f.content_item_id))])
+      : Promise.resolve({ data: [] }),
+    openFindings?.length
+      ? supabase
+          .from("kit_rules")
+          .select("id, name")
+          .in(
+            "id",
+            openFindings.map((f) => f.kit_rule_id).filter((v): v is string => Boolean(v)),
+          )
+      : Promise.resolve({ data: [] }),
+  ]);
   const itemMap = new Map((routedItems ?? []).map((i) => [i.id, i]));
-
-  const { data: routedRules } = openFindings?.length
-    ? await supabase
-        .from("kit_rules")
-        .select("id, name")
-        .in(
-          "id",
-          openFindings.map((f) => f.kit_rule_id).filter((v): v is string => Boolean(v)),
-        )
-    : { data: [] };
   const ruleMap = new Map((routedRules ?? []).map((r) => [r.id, r.name]));
 
   return (
