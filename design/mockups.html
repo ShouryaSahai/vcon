@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vcon — visual direction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     Vcon design tokens — "quiet governance"
+     Premium B2B SaaS: borders carry structure, color carries meaning.
+     ============================================================ */
+  :root[data-theme="light"] {
+    --bg: #F7F7F9;
+    --surface: #FFFFFF;
+    --surface-2: #FBFBFC;
+    --border: #E6E6EC;
+    --border-strong: #D8D8E0;
+    --text: #17171F;
+    --text-2: #5F5F72;
+    --text-3: #9494A6;
+    --accent: #5352CC;
+    --accent-hover: #4645B8;
+    --accent-soft: #EDEDFB;
+    --accent-border: #C9C9F2;
+    --high: #C93A56;      --high-bg: #FBEDEF;   --high-border: #F2CDD5;
+    --medium: #9A6A0B;    --medium-bg: #FBF3DF; --medium-border: #EEDDB4;
+    --low: #4A6FBF;       --low-bg: #ECF1FA;    --low-border: #D3DEF2;
+    --ok: #237A50;        --ok-bg: #E9F5EE;     --ok-border: #C4E3D1;
+    --warn: #9A6A0B;      --warn-bg: #FBF3DF;
+    --rose: #C93A56;
+    --sidebar: #131318;
+    --sidebar-text: #B9B9C6;
+    --shadow: 0 1px 2px rgba(23,23,31,.04), 0 4px 12px rgba(23,23,31,.05);
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0E0E12;
+    --surface: #16161C;
+    --surface-2: #1A1A21;
+    --border: #26262F;
+    --border-strong: #33333F;
+    --text: #EDEDF2;
+    --text-2: #A2A2B5;
+    --text-3: #6E6E82;
+    --accent: #7B7AF0;
+    --accent-hover: #8F8EF5;
+    --accent-soft: #1D1D36;
+    --accent-border: #35355C;
+    --high: #F0788E;      --high-bg: #2B1A21;   --high-border: #4A2834;
+    --medium: #E0AC4A;    --medium-bg: #2A2216; --medium-border: #453722;
+    --low: #85A3E8;       --low-bg: #191F30;    --low-border: #2B3550;
+    --ok: #58C791;        --ok-bg: #14251D;     --ok-border: #24402F;
+    --warn: #E0AC4A;      --warn-bg: #2A2216;
+    --rose: #F0788E;
+    --sidebar: #0A0A0E;
+    --sidebar-text: #8F8FA0;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Inter", -apple-system, system-ui, sans-serif;
+    font-size: 13px; line-height: 1.5; color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ===== App frame ===== */
+  .app { display: grid; grid-template-columns: 224px 1fr; min-height: 100vh; }
+
+  /* ===== Sidebar ===== */
+  .sidebar {
+    background: var(--sidebar); color: var(--sidebar-text);
+    display: flex; flex-direction: column; padding: 14px 10px;
+    border-right: 1px solid var(--border);
+    position: sticky; top: 0; height: 100vh;
+  }
+  .brand { display: flex; align-items: center; gap: 8px; padding: 6px 10px 18px; }
+  .brand-mark {
+    width: 22px; height: 22px; border-radius: 7px; background: var(--accent);
+    display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 12px;
+  }
+  :root[data-theme="dark"] .brand-mark { color: #0E0E12; }
+  .brand-name { color: #fff; font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
+  .nav-label { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #5E5E70; padding: 14px 10px 6px; }
+  .nav a {
+    display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 8px;
+    color: var(--sidebar-text); text-decoration: none; font-weight: 500; margin-bottom: 1px;
+  }
+  .nav a:hover { color: #E8E8F0; background: rgba(255,255,255,.05); }
+  .nav a.active { color: #fff; background: rgba(123,122,240,.16); }
+  .nav a.active .ico { color: #9B9AF5; }
+  .ico { width: 15px; text-align: center; opacity: .85; font-size: 12px; }
+  .nav-badge {
+    margin-left: auto; background: var(--accent); color: #fff; font-size: 10px; font-weight: 600;
+    border-radius: 999px; padding: 1px 6px; line-height: 1.5;
+  }
+  .sidebar .spacer { flex: 1; }
+  .ws-chip {
+    border: 1px solid rgba(255,255,255,.09); border-radius: 9px; padding: 9px 10px;
+    display: flex; align-items: center; gap: 9px; margin-bottom: 8px;
+  }
+  .ws-dot { width: 20px; height: 20px; border-radius: 6px; background: linear-gradient(135deg,#7B7AF0,#5352CC); color:#fff; display:grid; place-items:center; font-size:10px; font-weight:700; }
+  .ws-meta { line-height: 1.25; }
+  .ws-meta b { display: block; color: #E8E8F0; font-size: 12px; font-weight: 600; }
+  .ws-meta span { font-size: 10.5px; color: #6E6E82; }
+  .user-row { display: flex; align-items: center; gap: 9px; padding: 8px 10px; }
+  .avatar { width: 24px; height: 24px; border-radius: 999px; background: #3A3A4A; color: #CFCFDC; display: grid; place-items: center; font-size: 10px; font-weight: 600; }
+  .user-meta { line-height: 1.25; }
+  .user-meta b { display: block; color: #E8E8F0; font-size: 12px; font-weight: 500; }
+  .user-meta span { font-size: 10.5px; color: #6E6E82; }
+  .user-row .out { margin-left: auto; color: #6E6E82; font-size: 12px; }
+
+  /* ===== Main column ===== */
+  .main { display: flex; flex-direction: column; min-width: 0; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 12px 28px; border-bottom: 1px solid var(--border); background: var(--surface);
+    position: sticky; top: 0; z-index: 5;
+  }
+  .crumb { font-size: 12px; color: var(--text-3); }
+  .crumb b { color: var(--text); font-weight: 600; font-size: 13px; }
+  .top-actions { display: flex; align-items: center; gap: 10px; }
+  .search {
+    display: flex; align-items: center; gap: 7px; border: 1px solid var(--border);
+    background: var(--bg); border-radius: 8px; padding: 6px 10px; width: 240px; color: var(--text-3); font-size: 12.5px;
+  }
+  .kbd { border: 1px solid var(--border); border-radius: 5px; padding: 0 5px; font-size: 10px; color: var(--text-3); font-family: var(--mono); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 7px 13px;
+    font-size: 12.5px; font-weight: 600; border: 1px solid transparent; cursor: pointer;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  :root[data-theme="dark"] .btn-primary { color: #0E0E12; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-outline { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-ghost { background: transparent; color: var(--text-2); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 7px; }
+
+  .content { padding: 24px 28px 40px; max-width: 1120px; width: 100%; }
+
+  /* ===== Page header ===== */
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+  .page-title { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; }
+  .page-sub { color: var(--text-2); font-size: 12.5px; margin-top: 3px; }
+  .seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
+  .seg span { padding: 4px 11px; border-radius: 6px; font-size: 12px; font-weight: 500; color: var(--text-2); cursor: pointer; }
+  .seg span.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow); font-weight: 600; }
+
+  /* ===== Pills & chips ===== */
+  .pill { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 600; line-height: 1.7; border: 1px solid transparent; white-space: nowrap; }
+  .pill .dot { width: 5px; height: 5px; border-radius: 999px; background: currentColor; }
+  .pill-needs  { color: var(--high);   background: var(--high-bg);   border-color: var(--high-border); }
+  .pill-review { color: var(--accent); background: var(--accent-soft); border-color: var(--accent-border); }
+  .pill-ok     { color: var(--ok);     background: var(--ok-bg);     border-color: var(--ok-border); }
+  .pill-returned { color: var(--medium); background: var(--medium-bg); border-color: var(--medium-border); }
+  .pill-neutral { color: var(--text-2); background: var(--surface-2); border-color: var(--border); }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500;
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--text-2);
+    border-radius: 6px; padding: 2px 7px; white-space: nowrap;
+  }
+  .chip-rule { color: var(--accent); background: var(--accent-soft); border-color: var(--accent-border); font-weight: 600; }
+  .sev { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; border-radius: 6px; padding: 2px 8px; border: 1px solid transparent; }
+  .sev-high   { color: var(--high);   background: var(--high-bg);   border-color: var(--high-border); }
+  .sev-medium { color: var(--medium); background: var(--medium-bg); border-color: var(--medium-border); }
+  .sev-low    { color: var(--low);    background: var(--low-bg);    border-color: var(--low-border); }
+
+  /* ===== Screen: content list ===== */
+  .summary-line { display: flex; align-items: center; gap: 14px; font-size: 12.5px; color: var(--text-2); margin-bottom: 14px; }
+  .summary-line b { color: var(--text); font-weight: 600; }
+  .summary-line .sep { width: 3px; height: 3px; border-radius: 99px; background: var(--text-3); }
+  .list { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .row {
+    display: grid; grid-template-columns: minmax(0, 1fr) 210px 110px 130px; gap: 14px;
+    padding: 13px 18px; border-bottom: 1px solid var(--border); align-items: center;
+    text-decoration: none; color: inherit; transition: background .12s;
+  }
+  .row:last-child { border-bottom: none; }
+  .row:hover { background: var(--surface-2); }
+  .row-id { min-width: 0; }
+  .row-id .t { display: flex; align-items: center; gap: 8px; }
+  .row-id .kind { color: var(--text-3); font-size: 11px; }
+  .row-id .name { font-weight: 600; font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row-id .snip { color: var(--text-3); font-size: 11.5px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row-id .snip .flag { color: var(--high); border-bottom: 1.5px solid var(--high); }
+  .sev-counts { display: flex; gap: 6px; }
+  .meta { color: var(--text-2); font-size: 12px; }
+  .meta .sub { display: block; color: var(--text-3); font-size: 11px; margin-top: 1px; }
+  .row .end { text-align: right; color: var(--text-3); font-size: 11.5px; }
+
+  /* ===== Screen: detail ===== */
+  .detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+  .detail-title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; }
+  .detail-sub { color: var(--text-2); font-size: 12px; margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .detail-sub .dotsep { width: 3px; height: 3px; border-radius: 99px; background: var(--text-3); }
+  .back { color: var(--text-3); font-size: 12px; text-decoration: none; display: inline-block; margin-bottom: 8px; }
+  .back:hover { color: var(--accent); }
+
+  .detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+  .card + .card { margin-top: 16px; }
+  .card-head { padding: 13px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .card-title { font-size: 13px; font-weight: 600; }
+  .card-sub { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+  .card-body { padding: 16px 18px; }
+
+  .content-body { font-size: 14px; line-height: 1.65; color: var(--text); }
+  .content-meta { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+  /* Finding card */
+  .finding { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .finding + .finding { margin-top: 10px; }
+  .finding .rail { border-left: 3px solid var(--high); }
+  .finding.f-medium .rail { border-left-color: var(--medium); }
+  .finding.f-low .rail { border-left-color: var(--low); }
+  .f-head { display: flex; align-items: center; gap: 8px; padding: 11px 14px 0 14px; flex-wrap: wrap; }
+  .f-title { font-weight: 600; font-size: 13px; margin-right: auto; }
+  .f-body { padding: 6px 14px 0 17px; color: var(--text-2); font-size: 12.5px; }
+  .evidence {
+    margin: 10px 14px 0 17px; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 11px; font-size: 12.5px; color: var(--text);
+  }
+  .evidence .lbl { font-size: 10px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--text-3); display: block; margin-bottom: 3px; }
+  .evidence mark, .content-body mark {
+    background: var(--high-bg); color: var(--high); border-bottom: 1.5px solid var(--high);
+    padding: 0 2px; border-radius: 3px;
+  }
+  .fix {
+    margin: 10px 14px 0 17px; background: var(--ok-bg); border: 1px solid var(--ok-border);
+    border-radius: 8px; padding: 8px 11px; display: flex; align-items: flex-start; gap: 10px;
+  }
+  .fix .lbl { font-size: 10px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--ok); display: block; margin-bottom: 2px; }
+  .fix .txt { font-size: 12.5px; color: var(--text); }
+  .fix .copy { margin-left: auto; }
+  .f-foot { display: flex; align-items: center; gap: 8px; padding: 11px 14px 12px 17px; }
+  .f-foot .when { margin-left: auto; color: var(--text-3); font-size: 11px; }
+  .stamp { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--ok); }
+  .confidence { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-2); }
+  .conf-bar { width: 44px; height: 4px; border-radius: 99px; background: var(--border); overflow: hidden; display: inline-block; }
+  .conf-bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+
+  /* Right rail */
+  .rail-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+  .rail-card + .rail-card { margin-top: 14px; }
+  .rail-head { padding: 12px 15px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .rail-title { font-size: 12.5px; font-weight: 600; }
+  .rail-body { padding: 12px 15px 14px; }
+  .check-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 12px; color: var(--text-2); }
+  .check-row .st { margin-left: auto; font-size: 10.5px; font-weight: 600; letter-spacing: .02em; }
+  .ok-ico { color: var(--ok); font-weight: 700; }
+  .skip-ico { color: var(--medium); font-weight: 700; }
+  .integrity-ok { color: var(--ok); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
+  .integrity-warn { color: var(--medium); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 11px; font-weight: 600; color: var(--text-2); margin-bottom: 4px; }
+  .input, .textarea {
+    width: 100%; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text);
+    border-radius: 8px; padding: 7px 10px; font-size: 12.5px; font-family: inherit; resize: none;
+  }
+  .btn-block { width: 100%; justify-content: center; }
+  .btn-row { display: flex; gap: 8px; margin-top: 2px; }
+  .timeline { list-style: none; }
+  .timeline li { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px dashed var(--border); font-size: 12px; }
+  .timeline li:last-child { border-bottom: none; }
+  .timeline .t-ico { color: var(--text-3); width: 14px; text-align: center; }
+  .timeline .t-body { color: var(--text-2); }
+  .timeline .t-body b { color: var(--text); font-weight: 600; }
+  .timeline .when { margin-left: auto; color: var(--text-3); font-size: 11px; white-space: nowrap; }
+
+  /* ===== Tokens strip ===== */
+  .tokens-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .tok-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .tok-label { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); margin-bottom: 10px; }
+  .swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+  .sw { height: 34px; border-radius: 7px; border: 1px solid var(--border); }
+  .type-spec { font-size: 13px; }
+  .type-spec .s1 { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; }
+  .type-spec .s2 { font-weight: 600; }
+  .type-spec .s3 { color: var(--text-2); }
+  .type-spec .s4 { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); font-weight: 600; }
+  .type-spec .s5 { font-family: var(--mono); font-size: 11.5px; }
+</style>
+</head>
+<body>
+<script>
+  const p = new URLSearchParams(location.search);
+  document.documentElement.dataset.theme = p.get("theme") || "light";
+  const screen = p.get("screen") || "list";
+  window.__SCREEN__ = screen;
+</script>
+
+<div class="app">
+  <!-- ======== Sidebar (shared) ======== -->
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark">V</div><div class="brand-name">Vcon</div></div>
+    <div class="nav-label">Workspace</div>
+    <nav class="nav">
+      <a href="#"><span class="ico">⇪</span> Upload</a>
+      <a href="#" class="active"><span class="ico">▤</span> Content</a>
+      <a href="#"><span class="ico">☾</span> Review <span class="nav-badge">2</span></a>
+      <a href="#"><span class="ico">◈</span> Brand kit</a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="nav-label">Context</div>
+    <div class="ws-chip">
+      <div class="ws-dot">G</div>
+      <div class="ws-meta"><b>GlowNaturals</b><span>Kit v1 · published</span></div>
+    </div>
+    <div class="user-row">
+      <div class="avatar">CU</div>
+      <div class="user-meta"><b>creator User</b><span>Creator</span></div>
+      <div class="out">⏻</div>
+    </div>
+  </aside>
+
+  <!-- ======== MAIN ======== -->
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb" id="crumb">Content</div>
+      <div class="top-actions">
+        <div class="search">⌕ Search content… <span class="kbd" style="margin-left:auto">⌘K</span></div>
+        <button class="btn btn-primary">＋ New check</button>
+      </div>
+    </header>
+
+    <!-- ============ SCREEN: LIST ============ -->
+    <main class="content" id="screen-list">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Content</div>
+          <div class="page-sub">Everything this workspace has checked against GlowNaturals kit v1.</div>
+        </div>
+        <div class="seg"><span class="on">All</span><span>Needs changes</span><span>In review</span><span>Approved</span></div>
+      </div>
+
+      <div class="summary-line">
+        <span><b>3</b> items</span><span class="sep"></span>
+        <span><b>1</b> needs changes</span><span class="sep"></span>
+        <span><b>1</b> in review</span><span class="sep"></span>
+        <span><b>1</b> approved</span>
+      </div>
+
+      <div class="list">
+        <a class="row" href="#">
+          <div class="row-id">
+            <div class="t"><span class="kind">Text · Instagram post</span></div>
+            <div class="name">The miracle glow launch post</div>
+            <div class="snip">"The <span class="flag">miracle</span> glow you need! 100% natural and clinically proven…"</div>
+          </div>
+          <div class="sev-counts"><span class="sev sev-high">1 high</span><span class="sev sev-medium">1 medium</span><span class="sev sev-low">2 low</span></div>
+          <div class="meta">Kit v1<span class="sub">+ resubmission</span></div>
+          <div class="end"><span class="pill pill-needs"><span class="dot"></span>Needs changes</span><div class="end" style="margin-top:4px">2:41 PM</div></div>
+        </a>
+
+        <a class="row" href="#">
+          <div class="row-id">
+            <div class="t"><span class="kind">Text · Instagram post</span></div>
+            <div class="name">A notable glow — corrected</div>
+            <div class="snip">"A notable glow, made with natural ingredients. Results may vary…"</div>
+          </div>
+          <div class="sev-counts"><span class="pill pill-neutral">clean</span></div>
+          <div class="meta">Kit v1<span class="sub">resubmission</span></div>
+          <div class="end"><span class="pill pill-review"><span class="dot"></span>In review</span><div class="end" style="margin-top:4px">3:12 PM</div></div>
+        </a>
+
+        <a class="row" href="#">
+          <div class="row-id">
+            <div class="t"><span class="kind">Image · Instagram post</span></div>
+            <div class="name">Sage product shot</div>
+            <div class="snip">Alt text: "Product bottle on a soft sage background in natural daylight."</div>
+          </div>
+          <div class="sev-counts"><span class="pill pill-neutral">clean</span></div>
+          <div class="meta">Kit v1</div>
+          <div class="end"><span class="pill pill-ok"><span class="dot"></span>Approved</span><div class="end" style="margin-top:4px">3:30 PM</div></div>
+        </a>
+
+        <a class="row" href="#">
+          <div class="row-id">
+            <div class="t"><span class="kind">Image · Instagram post</span></div>
+            <div class="name">Hero launch visual</div>
+            <div class="snip">Alt text missing — flagged at upload</div>
+          </div>
+          <div class="sev-counts"><span class="sev sev-medium">1 medium</span><span class="sev sev-low">1 low</span></div>
+          <div class="meta">Kit v1</div>
+          <div class="end"><span class="pill pill-needs"><span class="dot"></span>Needs changes</span><div class="end" style="margin-top:4px">1:58 PM</div></div>
+        </a>
+      </div>
+    </main>
+
+    <!-- ============ SCREEN: DETAIL ============ -->
+    <main class="content" id="screen-detail" style="display:none">
+      <a class="back" href="#">← Content</a>
+      <div class="detail-head">
+        <div>
+          <div class="detail-title">Text · Instagram post
+            <span class="pill pill-needs"><span class="dot"></span>Needs changes</span>
+          </div>
+          <div class="detail-sub">
+            <span>Today 2:41 PM</span><span class="dotsep"></span>
+            <span>Checked against <b style="color:var(--text)">kit v1</b> (published)</span><span class="dotsep"></span>
+            <span>Resubmission of <u>#4667078f</u></span><span class="dotsep"></span>
+            <span>3 open findings</span>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button class="btn btn-outline btn-sm">⤓ Export</button>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <!-- LEFT -->
+        <div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">Content</div><span class="chip">creator User</span></div>
+            <div class="card-body content-body">
+              The <mark>miracle</mark> glow you need! 100% natural and clinically proven.
+              Only from Glow&nbsp;Naturals.
+              <div class="content-meta">
+                <span class="chip">Instagram post</span>
+                <span class="chip">⌗ 92 words</span>
+                <span class="chip">kit v1 · published</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <div class="card-title">Findings</div>
+                <div class="card-sub">Deterministic and cited AI flags trace to their kit rule; anything uncited is routed to human review.</div>
+              </div>
+              <span class="chip">3 open</span>
+            </div>
+            <div class="card-body">
+
+              <!-- E1: banned term, accepted -->
+              <div class="finding rail">
+                <div class="f-head">
+                  <span class="sev sev-high">high</span>
+                  <span class="f-title">Banned term: “miracle”</span>
+                  <span class="chip">Rule engine</span>
+                  <span class="chip chip-rule">⚡ Banned: “miracle”</span>
+                </div>
+                <div class="f-body">The content uses “miracle”, which this brand kit bans. Banned terms are removed before publication, so this must change.</div>
+                <div class="evidence"><span class="lbl">Evidence — location 4–11</span>The <mark>miracle</mark> glow you need! …</div>
+                <div class="fix">
+                  <div><span class="lbl">Suggested fix · accepted</span>
+                  <span class="txt">Replace “miracle” with approved wording.</span></div>
+                  <span class="stamp copy" style="margin-left:auto">✓ Fix accepted</span>
+                </div>
+                <div class="f-foot"><span class="when">Decided by creator User · 2:58 PM</span></div>
+              </div>
+
+              <!-- E2: AI claim, routed to reviewer -->
+              <div class="finding f-high rail">
+                <div class="f-head">
+                  <span class="sev sev-high">high</span>
+                  <span class="f-title">Claim not in approved library</span>
+                  <span class="chip">AI check</span>
+                  <span class="chip chip-rule">⚡ Approved claims (C-12)</span>
+                </div>
+                <div class="f-body">The caption says “100% natural”, which is not in the approved claims library. This rule is claim-sensitive, so the decision belongs to the claims reviewer.</div>
+                <div class="evidence"><span class="lbl">Evidence — location 32–44</span>…cream is <mark>100% natural</mark> and clinically proven…</div>
+                <div class="fix">
+                  <div><span class="lbl">Suggested fix</span>
+                  <span class="txt">Use “made with natural ingredients” instead.</span></div>
+                  <button class="btn btn-outline btn-sm copy">Copy</button>
+                </div>
+                <div class="f-foot">
+                  <span class="confidence">Confidence <span class="conf-bar"><i style="width:95%"></i></span> 0.95</span>
+                  <button class="btn btn-primary btn-sm">Approve claim</button>
+                  <button class="btn btn-ghost btn-sm">Override…</button>
+                  <span class="when">Awaiting claims reviewer</span>
+                </div>
+              </div>
+
+              <!-- E3: disclaimer -->
+              <div class="finding f-medium rail">
+                <div class="f-head">
+                  <span class="sev sev-medium">medium</span>
+                  <span class="f-title">Missing required disclaimer</span>
+                  <span class="chip">Rule engine</span>
+                  <span class="chip chip-rule">⚡ Disclaimer with performance claims</span>
+                </div>
+                <div class="f-body">The content mentions “clinically proven”, which requires the disclaimer “Results may vary” — it is not present.</div>
+                <div class="fix">
+                  <div><span class="lbl">Suggested fix</span>
+                  <span class="txt">Append the required disclaimer: “Results may vary”</span></div>
+                  <button class="btn btn-outline btn-sm copy">Copy</button>
+                </div>
+                <div class="f-foot">
+                  <button class="btn btn-primary btn-sm">Accept fix</button>
+                  <button class="btn btn-outline btn-sm">Reject</button>
+                  <span class="when">2:41 PM</span>
+                </div>
+              </div>
+
+              <!-- E7: terminology, rejected -->
+              <div class="finding f-low rail">
+                <div class="f-head">
+                  <span class="sev sev-low">low</span>
+                  <span class="f-title">Incorrect brand name formatting</span>
+                  <span class="chip">AI check</span>
+                  <span class="chip chip-rule">⚡ Terminology: brand name</span>
+                </div>
+                <div class="f-body">“Glow Naturals” should be written “GlowNaturals” per the terminology rule.</div>
+                <div class="fix">
+                  <div><span class="lbl">Suggested fix · rejected</span>
+                  <span class="txt">Prefer “GlowNaturals”.</span></div>
+                  <span class="stamp copy" style="margin-left:auto">✕ Fix rejected</span>
+                </div>
+                <div class="f-foot"><span class="when">Decided by creator User · 2:59 PM</span></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT RAIL -->
+        <div>
+          <div class="rail-card">
+            <div class="rail-head">
+              <span class="rail-title">Verification</span>
+              <span class="integrity-ok" style="margin-left:auto"><span class="ok-ico">●</span> Complete</span>
+            </div>
+            <div class="rail-body">
+              <div class="check-row">Banned terms <span class="st ok-ico">ran</span></div>
+              <div class="check-row">Required terms <span class="st" style="color:var(--text-3)">n/a</span></div>
+              <div class="check-row">Disclaimers <span class="st ok-ico">ran</span></div>
+              <div class="check-row">Alt text <span class="st" style="color:var(--text-3)">n/a</span></div>
+              <div class="check-row">Palette match <span class="st" style="color:var(--text-3)">n/a</span></div>
+              <div class="check-row">Tone · claims · terms (AI) <span class="st ok-ico">ran</span></div>
+              <div class="check-row" style="border-top:1px dashed var(--border); margin-top:6px; padding-top:9px">
+                Duration <span class="st" style="color:var(--text-2); font-family:var(--mono)">2.2 s</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rail-card">
+            <div class="rail-head"><span class="rail-title">Final verdict</span></div>
+            <div class="rail-body">
+              <div class="field">
+                <label>Note to creator (optional)</label>
+                <textarea class="textarea" rows="2" placeholder="Only if returning…"></textarea>
+              </div>
+              <div class="btn-row">
+                <button class="btn btn-primary btn-block">Approve</button>
+                <button class="btn btn-outline">Return</button>
+              </div>
+              <p style="font-size:10.5px; color:var(--text-3); margin-top:9px; line-height:1.5">
+                Vcon never publishes. Approval is recorded in the history and marks the item ready to export.
+              </p>
+            </div>
+          </div>
+
+          <div class="rail-card">
+            <div class="rail-head"><span class="rail-title">History</span><span class="chip" style="margin-left:auto">append-only</span></div>
+            <div class="rail-body">
+              <ul class="timeline">
+                <li><span class="t-ico">✓</span><div class="t-body"><b>Fix accepted</b> — banned term<br>by creator User</div><span class="when">2:58 PM</span></li>
+                <li><span class="t-ico">✕</span><div class="t-body"><b>Fix rejected</b> — terminology<br>by creator User</div><span class="when">2:59 PM</span></li>
+                <li><span class="t-ico">⚑</span><div class="t-body"><b>Claim approved</b> — override<br>by reviewer User<br><span style="font-size:11px">“Checked against the approved-claims library.”</span></div><span class="when">3:04 PM</span></li>
+                <li><span class="t-ico">⤴</span><div class="t-body"><b>Resubmitted</b> — re-checked<br>against kit v1</div><span class="when">3:11 PM</span></li>
+                <li><span class="t-ico">●</span><div class="t-body"><b>Check complete</b><br>4 findings · 2.2 s</div><span class="when">2:41 PM</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ============ SCREEN: TOKENS ============ -->
+    <main class="content" id="screen-tokens" style="display:none">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Design tokens</div>
+          <div class="page-sub">The vocabulary every screen is built from — light and dark share the same roles.</div>
+        </div>
+      </div>
+
+      <div class="tokens-grid">
+        <div class="tok-card">
+          <div class="tok-label">Brand & accent</div>
+          <div class="swatches">
+            <div class="sw" style="background:#5352CC" title="accent"></div>
+            <div class="sw" style="background:#EDEDFB" title="accent-soft"></div>
+            <div class="sw" style="background:#17171F" title="text"></div>
+            <div class="sw" style="background:#5F5F72" title="text-2"></div>
+            <div class="sw" style="background:#F7F7F9" title="bg"></div>
+            <div class="sw" style="background:#FFFFFF" title="surface"></div>
+            <div class="sw" style="background:#E6E6EC" title="border"></div>
+            <div class="sw" style="background:#131318" title="sidebar"></div>
+          </div>
+        </div>
+        <div class="tok-card">
+          <div class="tok-label">Severity & state</div>
+          <div class="swatches">
+            <div class="sw" style="background:#C93A56" title="high"></div>
+            <div class="sw" style="background:#9A6A0B" title="medium / warn"></div>
+            <div class="sw" style="background:#4A6FBF" title="low"></div>
+            <div class="sw" style="background:#237A50" title="ok"></div>
+            <div class="sw" style="background:#FBEDEF" title="high-bg"></div>
+            <div class="sw" style="background:#FBF3DF" title="medium-bg"></div>
+            <div class="sw" style="background:#ECF1FA" title="low-bg"></div>
+            <div class="sw" style="background:#E9F5EE" title="ok-bg"></div>
+          </div>
+        </div>
+        <div class="tok-card">
+          <div class="tok-label">Type scale — Inter</div>
+          <div class="type-spec">
+            <div class="s1">Page title 17/600</div>
+            <div class="s2">Card title 13/600</div>
+            <div class="s3">Body 13/400 — explanations live here</div>
+            <div class="s4">Section label 10/600 caps</div>
+            <div class="s5">mono 11.5 — ids, timings</div>
+          </div>
+        </div>
+        <div class="tok-card">
+          <div class="tok-label">Principles</div>
+          <div class="type-spec">
+            <div class="s2">Borders carry structure</div>
+            <div class="s3">One soft shadow, popovers only.</div>
+            <div class="s2" style="margin-top:8px">Color carries meaning</div>
+            <div class="s3">Accent = action · severity = evidence.</div>
+            <div class="s2" style="margin-top:8px">Evidence over decoration</div>
+            <div class="s3">Every flag shows rule, proof, fix.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="card-head"><div class="card-title">Dark theme — same roles, adjusted values</div><span class="chip">theme: dark</span></div>
+        <div class="card-body" style="display:flex; gap:14px; align-items:center; flex-wrap:wrap">
+          <span class="pill pill-needs"><span class="dot"></span>Needs changes</span>
+          <span class="pill pill-review"><span class="dot"></span>In review</span>
+          <span class="pill pill-ok"><span class="dot"></span>Approved</span>
+          <span class="sev sev-high">high</span>
+          <span class="sev sev-medium">medium</span>
+          <span class="sev sev-low">low</span>
+          <span class="chip chip-rule">⚡ C-12 · Approved claims</span>
+          <span class="confidence">Confidence <span class="conf-bar"><i style="width:95%"></i></span> 0.95</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  const s = window.__SCREEN__;
+  document.getElementById("crumb").innerHTML = s === "detail" ? "Content / <b>Instagram post</b>" : "<b>Content</b>";
+  if (s !== "list") document.getElementById("screen-list").style.display = "none";
+  if (s === "detail") document.getElementById("screen-detail").style.display = "block";
+  if (s === "tokens") document.getElementById("screen-tokens").style.display = "block";
+</script>
+</body>
+</html>
