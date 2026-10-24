@@ -71,8 +71,8 @@ export default async function UploadPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Upload content</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="text-xl font-semibold text-foreground">Upload content</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           It will be checked against kit v{currentVersion.version_number} (published) before
           review.
         </p>

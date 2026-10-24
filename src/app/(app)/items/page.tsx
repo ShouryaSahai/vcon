@@ -1,28 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import type { ContentStatus } from "@/lib/db-types";
+import { StatusPill } from "@/components/indicators";
 import { createClient } from "@/lib/supabase/server";
+import type { Severity } from "@/lib/db-types";
+
+import { ItemsBrowser, type ListItem } from "./items-browser";
 
 // Session-reading page (Cache Components opt-out).
 export const instant = false;
-
-const STATUS_VARIANT: Record<ContentStatus, "default" | "secondary" | "destructive" | "outline"> = {
-  uploaded: "outline",
-  checking: "secondary",
-  needs_changes: "destructive",
-  in_review: "default",
-  approved: "secondary",
-  returned: "destructive",
-  failed: "destructive",
-};
 
 export default async function ItemsPage() {
   const supabase = await createClient();
@@ -39,65 +25,84 @@ export default async function ItemsPage() {
 
   if (!profile?.workspace_id) {
     return (
-      <Card className="max-w-xl">
-        <CardHeader>
-          <CardTitle>No workspace yet</CardTitle>
-          <CardDescription>
+      <div className="mx-auto max-w-xl pt-4">
+        <div className="rounded-xl border border-border bg-card p-6">
+          <p className="font-semibold">No workspace yet</p>
+          <p className="mt-1 text-sm text-muted-foreground">
             Attach your account to a workspace to see content items (RLS enforced).
-          </CardDescription>
-        </CardHeader>
-      </Card>
+          </p>
+        </div>
+      </div>
     );
   }
 
-  const { data: items } = await supabase
-    .from("content_items")
-    .select("id, context_type, source_kind, status, created_at")
-    .order("created_at", { ascending: false });
+  const [{ data: items }, { data: allFindings }, { data: kit }] = await Promise.all([
+    supabase
+      .from("content_items")
+      .select("id, source_kind, context_type, status, created_at, text_content, alt_text")
+      .order("created_at", { ascending: false }),
+    supabase.from("findings").select("content_item_id, severity, status"),
+    supabase.from("brand_kits").select("current_version_id").limit(1).maybeSingle(),
+  ]);
+
+  const { data: currentVersion } = kit?.current_version_id
+    ? await supabase
+        .from("kit_versions")
+        .select("version_number")
+        .eq("id", kit.current_version_id)
+        .maybeSingle()
+    : { data: null };
+  const kitLabel = currentVersion ? `Kit v${currentVersion.version_number}` : "no kit";
+
+  const countsByItem = new Map<string, Record<Severity, number>>();
+  for (const f of allFindings ?? []) {
+    if (f.status !== "open") continue;
+    const rec = countsByItem.get(f.content_item_id) ?? { high: 0, medium: 0, low: 0 };
+    const sev = (["high", "medium", "low"] as Severity[]).includes(f.severity as Severity)
+      ? (f.severity as Severity)
+      : "medium";
+    rec[sev] += 1;
+    countsByItem.set(f.content_item_id, rec);
+  }
+
+  const listItems: ListItem[] = (items ?? []).map((i) => {
+    const flagged = (countsByItem.get(i.id) ?? { high: 0, medium: 0, low: 0 }).high > 0;
+    const snippet =
+      i.source_kind === "text"
+        ? (i.text_content ?? "").slice(0, 110)
+        : i.alt_text
+          ? `Alt text: ${i.alt_text.slice(0, 100)}`
+          : "Image upload — no alt text yet";
+    return {
+      id: i.id,
+      source_kind: i.source_kind,
+      context_type: i.context_type,
+      status: i.status,
+      created_at: i.created_at,
+      snippet,
+      flagged,
+      counts: countsByItem.get(i.id) ?? { high: 0, medium: 0, low: 0 },
+    };
+  });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-slate-900">Content items</h1>
+    <div className="mx-auto max-w-[1120px] space-y-5 pb-12">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-[17px] font-semibold tracking-tight">Content items</h1>
+          <p className="mt-1 text-[12.5px] text-muted-foreground">
+            Everything this workspace has checked against the published kit.
+          </p>
+        </div>
         <Link
           href="/upload"
-          className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-[12.5px] font-semibold text-primary-foreground hover:bg-primary/90"
         >
-          + Upload
+          + New check
         </Link>
       </div>
 
-      {!items || items.length === 0 ? (
-        <Card className="max-w-xl">
-          <CardHeader>
-            <CardTitle>Nothing here yet</CardTitle>
-            <CardDescription>
-              Upload text or an image to run it through the brand kit checks.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {items.map((item) => (
-            <Link
-              key={item.id}
-              href={`/items/${item.id}`}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 hover:border-slate-300"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-slate-900">
-                  {item.source_kind === "text" ? "Text" : "Image"} ·{" "}
-                  {item.context_type.replace("_", " ")}
-                </span>
-                <Badge variant={STATUS_VARIANT[item.status]}>{item.status.replace("_", " ")}</Badge>
-              </div>
-              <span className="text-xs text-slate-500">
-                {new Date(item.created_at).toLocaleString()}
-              </span>
-            </Link>
-          ))}
-        </div>
-      )}
+      <ItemsBrowser items={listItems} kitLabel={kitLabel} />
     </div>
   );
 }

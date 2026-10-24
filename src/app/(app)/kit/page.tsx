@@ -90,8 +90,8 @@ export default async function KitPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">{kit.name}</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="text-xl font-semibold text-foreground">{kit.name}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           {current
             ? `Current version: v${current.version_number} (published) — checks run against this.`
             : "No published version yet."}
@@ -118,9 +118,9 @@ export default async function KitPage() {
 
 function Notice({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-      <p className="text-sm font-medium text-amber-900">{title}</p>
-      <p className="mt-1 text-sm text-amber-900/80">{body}</p>
+    <div className="rounded-lg border border-warning-border bg-warning-soft p-4">
+      <p className="text-sm font-medium text-warning">{title}</p>
+      <p className="mt-1 text-sm text-warning/80">{body}</p>
     </div>
   );
 }
@@ -128,7 +128,7 @@ function Notice({ title, body }: { title: string; body: string }) {
 function ReadOnlyRules({ rules }: { rules: KitRule[] }) {
   return (
     <div className="space-y-6">
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-muted-foreground">
         Read-only view — only admins can edit the brand kit.
       </p>
       {RULE_TYPES.map((type) => {
@@ -136,15 +136,15 @@ function ReadOnlyRules({ rules }: { rules: KitRule[] }) {
         if (group.length === 0) return null;
         return (
           <section key={type} className="space-y-2">
-            <h2 className="text-sm font-semibold text-slate-700">
+            <h2 className="text-sm font-semibold text-foreground/85">
               {RULE_TYPE_LABELS[type]}
             </h2>
             {group.map((rule) => (
               <div
                 key={rule.id}
-                className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"
+                className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-3 py-2"
               >
-                <span className="text-sm font-medium text-slate-900">{rule.name}</span>
+                <span className="text-sm font-medium text-foreground">{rule.name}</span>
                 <Badge
                   variant={rule.severity_default === "high" ? "destructive" : "secondary"}
                 >

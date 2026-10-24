@@ -18,26 +18,26 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border border-slate-200 bg-white p-6">
-        <h1 className="text-xl font-semibold text-slate-900">M0 scaffold is live</h1>
-        <p className="mt-2 text-sm text-slate-600">
+      <section className="rounded-lg border border-border bg-card p-6">
+        <h1 className="text-xl font-semibold text-foreground">Workspace overview</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
           Auth with roles and workspace isolation is wired up. Next milestone (M1) adds the
           seeded demo brand kit.
         </p>
         <dl className="mt-4 space-y-1 text-sm">
           <div className="flex gap-2">
-            <dt className="w-28 font-medium text-slate-500">Signed in as</dt>
-            <dd className="text-slate-900">{user?.email}</dd>
+            <dt className="w-28 font-medium text-muted-foreground">Signed in as</dt>
+            <dd className="text-foreground">{user?.email}</dd>
           </div>
           {profile && (
             <>
               <div className="flex gap-2">
-                <dt className="w-28 font-medium text-slate-500">Role</dt>
-                <dd className="text-slate-900">{ROLE_LABELS[profile.role as UserRole]}</dd>
+                <dt className="w-28 font-medium text-muted-foreground">Role</dt>
+                <dd className="text-foreground">{ROLE_LABELS[profile.role as UserRole]}</dd>
               </div>
               <div className="flex gap-2">
-                <dt className="w-28 font-medium text-slate-500">Workspace</dt>
-                <dd className="text-slate-900">
+                <dt className="w-28 font-medium text-muted-foreground">Workspace</dt>
+                <dd className="text-foreground">
                   {profile.workspace_id ? "Assigned ✓" : "Not assigned yet"}
                 </dd>
               </div>

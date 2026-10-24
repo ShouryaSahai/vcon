@@ -37,7 +37,7 @@ export function ResubmitForm({
             onChange={(event) => setText(event.target.value)}
             placeholder="Apply the accepted fixes, then resubmit for a fresh check…"
           />
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Copy the accepted fixes below into the text, adjust wording, and resubmit.
           </p>
         </div>
@@ -51,7 +51,7 @@ export function ResubmitForm({
             onChange={(event) => setAlt(event.target.value)}
             placeholder="Describe the image for screen readers…"
           />
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             The image itself is reused; fix the alt text (min 20 characters) or ask a designer
             to adjust the visual per the findings.
           </p>
@@ -59,7 +59,7 @@ export function ResubmitForm({
       )}
 
       {state.error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}
         </p>
       )}

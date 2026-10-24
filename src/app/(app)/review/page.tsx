@@ -1,14 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { ConfidenceMeter, SevChip, SevRail, StatusPill } from "@/components/indicators";
 import { createClient } from "@/lib/supabase/server";
 import { STATUS_VARIANT } from "@/lib/types";
 
@@ -31,19 +24,18 @@ export default async function ReviewPage() {
 
   if (role !== "reviewer" && role !== "approver" && role !== "admin") {
     return (
-      <Card className="max-w-xl">
-        <CardHeader>
-          <CardTitle>Reviewer queue</CardTitle>
-          <CardDescription>
+      <div className="mx-auto max-w-xl pt-4">
+        <div className="rounded-xl border border-border bg-card p-6">
+          <p className="font-semibold">Reviewer queue</p>
+          <p className="mt-1 text-sm text-muted-foreground">
             This queue is for reviewers, approvers and admins. Creators work from the
             item pages and their fix decisions.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+          </p>
+        </div>
+      </div>
     );
   }
 
-  // 1) Items awaiting a verdict + 2) findings routed to reviewers — in parallel.
   const [{ data: awaiting }, { data: withCreators }, { data: openFindings }] = await Promise.all([
     supabase
       .from("content_items")
@@ -86,137 +78,124 @@ export default async function ReviewPage() {
   const ruleMap = new Map((routedRules ?? []).map((r) => [r.id, r.name]));
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-[1120px] space-y-5 pb-12">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Reviewer queue</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Items waiting for a verdict, and findings routed to reviewers by type and confidence.
+        <h1 className="text-[17px] font-semibold tracking-tight">Review</h1>
+        <p className="mt-1 text-[12.5px] text-muted-foreground">
+          Findings routed to you by type and confidence, and items waiting for a verdict.
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Findings routed to reviewers</CardTitle>
-          <CardDescription>
-            Claims, facts and low-confidence flags — a human confirms them before they count.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
+      <section className="rounded-xl border border-border bg-card">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <span className="text-[13px] font-semibold">Routed to reviewers</span>
+          <span className="rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+            {openFindings?.length ?? 0}
+          </span>
+        </div>
+        <div className="space-y-2.5 px-4 py-4">
           {!openFindings || openFindings.length === 0 ? (
-            <p className="text-sm text-slate-500">Nothing routed to reviewers right now.</p>
+            <p className="text-sm text-muted-foreground">
+              Nothing routed to reviewers right now.
+            </p>
           ) : (
             openFindings.map((finding) => {
               const item = itemMap.get(finding.content_item_id);
               const ruleName = finding.kit_rule_id ? ruleMap.get(finding.kit_rule_id) : null;
               return (
-                <div key={finding.id} className="rounded-lg border border-slate-200 p-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={finding.severity === "high" ? "destructive" : "secondary"}>
-                      {finding.severity}
-                    </Badge>
-                    <span className="text-sm font-medium text-slate-900">{finding.title}</span>
-                    {finding.needs_human && <Badge variant="outline">needs human</Badge>}
-                    {item && (
-                      <Badge variant={STATUS_VARIANT[item.status]}>
-                        {item.status.replace("_", " ")}
-                      </Badge>
-                    )}
+                <SevRail key={finding.id} severity={finding.severity}>
+                  <div className="p-3.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <SevChip severity={finding.severity} />
+                      <span className="text-[13px] font-semibold">{finding.title}</span>
+                      {finding.needs_human && (
+                        <span className="rounded-md border border-warning-border bg-warning-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-warning">
+                          needs human
+                        </span>
+                      )}
+                      {item && <StatusPill status={item.status} />}
+                    </div>
+                    <p className="mt-1.5 text-[12.5px] text-muted-foreground">{finding.explanation}</p>
+                    <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                      {finding.confidence !== null && <ConfidenceMeter value={finding.confidence} />}
+                      {ruleName && (
+                        <span className="inline-flex items-center gap-1 rounded-md border border-primary/25 bg-primary/5 px-1.5 py-0.5 font-semibold text-primary">
+                          ⚡ {ruleName}
+                        </span>
+                      )}
+                      {item && (
+                        <Link
+                          href={`/items/${item.id}`}
+                          className="font-medium text-primary underline-offset-4 hover:underline"
+                        >
+                          open {item.source_kind} item ({item.context_type.replace("_", " ")})
+                        </Link>
+                      )}
+                    </p>
                   </div>
-                  <p className="mt-1 text-sm text-slate-600">{finding.explanation}</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {finding.confidence !== null && (
-                      <span className="mr-2">Confidence: {finding.confidence} ·</span>
-                    )}
-                    {ruleName ? `Rule: ${ruleName} · ` : ""}
-                    {item ? (
-                      <Link
-                        href={`/items/${item.id}`}
-                        className="font-medium underline-offset-4 hover:underline"
-                      >
-                        open {item.source_kind} item ({item.context_type.replace("_", " ")})
-                      </Link>
-                    ) : (
-                      "item unavailable"
-                    )}
-                  </p>
-                </div>
+                </SevRail>
               );
             })
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Awaiting final verdict</CardTitle>
-          <CardDescription>
-            {awaiting?.length ?? 0} item{(awaiting?.length ?? 0) === 1 ? "" : "s"} fully checked
-            and waiting for approval.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
+      <section className="rounded-xl border border-border bg-card">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <span className="text-[13px] font-semibold">Awaiting final verdict</span>
+          <span className="rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+            {awaiting?.length ?? 0}
+          </span>
+        </div>
+        <div className="px-4 py-4">
           {!awaiting || awaiting.length === 0 ? (
-            <p className="text-sm text-slate-500">The queue is empty.</p>
+            <p className="text-sm text-muted-foreground">The queue is empty.</p>
           ) : (
-            awaiting.map((item) => (
-              <Link
-                key={item.id}
-                href={`/items/${item.id}`}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 hover:border-slate-300"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-slate-900">
+            <div className="overflow-hidden rounded-lg border border-border">
+              {awaiting.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/items/${item.id}`}
+                  className="flex items-center justify-between gap-4 border-b border-border px-4 py-2.5 transition-colors last:border-none hover:bg-secondary/60"
+                >
+                  <span className="flex items-center gap-2.5 text-[13px] font-medium">
                     {item.source_kind === "text" ? "Text" : "Image"} ·{" "}
                     {item.context_type.replace("_", " ")}
+                    <StatusPill status={item.status} />
                   </span>
-                  <Badge variant={STATUS_VARIANT[item.status]}>
-                    {item.status.replace("_", " ")}
-                  </Badge>
-                </div>
-                <span className="text-xs text-slate-500">
-                  {new Date(item.created_at).toLocaleString()}
-                </span>
-              </Link>
-            ))
+                  <span className="text-[11px] text-muted-foreground">
+                    {new Date(item.created_at).toLocaleString([], {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </Link>
+              ))}
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>With creators</CardTitle>
-          <CardDescription>
-            Items returned for changes or still carrying creator-fixable findings — shown for
-            visibility, not awaiting your verdict.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
+      <section className="rounded-xl border border-border bg-card">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <span className="text-[13px] font-semibold">With creators</span>
+          <span className="rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+            {withCreators?.length ?? 0}
+          </span>
+        </div>
+        <div className="px-4 py-4">
           {!withCreators || withCreators.length === 0 ? (
-            <p className="text-sm text-slate-500">Nothing is with creators right now.</p>
+            <p className="text-sm text-muted-foreground">Nothing is with creators right now.</p>
           ) : (
-            withCreators.map((item) => (
-              <Link
-                key={item.id}
-                href={`/items/${item.id}`}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 hover:border-slate-300"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-slate-900">
-                    {item.source_kind === "text" ? "Text" : "Image"} ·{" "}
-                    {item.context_type.replace("_", " ")}
-                  </span>
-                  <Badge variant={STATUS_VARIANT[item.status]}>
-                    {item.status.replace("_", " ")}
-                  </Badge>
-                </div>
-                <span className="text-xs text-slate-500">
-                  {new Date(item.created_at).toLocaleString()}
-                </span>
-              </Link>
-            ))
+            <p className="text-sm text-muted-foreground">
+              Returned items or items carrying creator-fixable findings — visible here for
+              context; the verdict comes after they resubmit.
+            </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 }

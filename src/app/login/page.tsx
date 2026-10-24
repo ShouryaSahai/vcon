@@ -13,11 +13,11 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+    <main className="flex min-h-screen items-center justify-center bg-secondary/50 px-4">
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Vcon</h1>
-          <p className="mt-1 text-sm text-slate-500">Brand governance before publication</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Vcon</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Brand governance before publication</p>
         </div>
 
         {!isSupabaseConfigured ? (

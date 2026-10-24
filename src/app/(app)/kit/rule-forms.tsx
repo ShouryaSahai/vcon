@@ -190,7 +190,7 @@ function RuleForm({
   return (
     <form
       action={formAction}
-      className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4"
+      className="space-y-3 rounded-lg border border-border bg-secondary/50 p-4"
     >
       {mode === "add" && <input type="hidden" name="version_id" value={versionId} />}
       {mode === "edit" && <input type="hidden" name="id" value={rule?.id} />}
@@ -224,7 +224,7 @@ function RuleForm({
           ) : (
             <>
               <input type="hidden" name="rule_type" value={ruleType} />
-              <div className="px-1 py-2 text-sm text-slate-600">
+              <div className="px-1 py-2 text-sm text-muted-foreground">
                 {RULE_TYPE_LABELS[ruleType]}
               </div>
             </>
@@ -268,12 +268,12 @@ function RuleForm({
       />
 
       {state.error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}
         </p>
       )}
       {state.message && (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <p className="rounded-md border border-success-border bg-success-soft px-3 py-2 text-sm text-success">
           {state.message}
         </p>
       )}
@@ -389,16 +389,16 @@ function PayloadFields({
 
 function RuleRow({ rule, onEdit }: { rule: KitRule; onEdit: () => void }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-slate-900">{rule.name}</span>
+          <span className="text-sm font-medium text-foreground">{rule.name}</span>
           <Badge variant={rule.severity_default === "high" ? "destructive" : "secondary"}>
             {rule.severity_default}
           </Badge>
           {!rule.is_active && <Badge variant="outline">inactive</Badge>}
         </div>
-        <p className="mt-0.5 truncate text-xs text-slate-500">{payloadSummary(rule)}</p>
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">{payloadSummary(rule)}</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" variant="outline" type="button" onClick={onEdit}>
@@ -448,10 +448,10 @@ function EnsureDraftButton({
             : `Edit rules (creates draft v${nextVersionNumber})`}
         </Button>
       </form>
-      <span className="text-xs text-slate-500">
+      <span className="text-xs text-muted-foreground">
         Published versions are immutable — edits happen in a draft.
       </span>
-      {state.error && <span className="text-sm text-red-600">{state.error}</span>}
+      {state.error && <span className="text-sm text-destructive">{state.error}</span>}
     </div>
   );
 }
@@ -508,9 +508,9 @@ function PublishControls({
           Discard draft
         </Button>
       </form>
-      {state.error && <span className="text-sm text-red-600">{state.error}</span>}
+      {state.error && <span className="text-sm text-destructive">{state.error}</span>}
       {state.message && (
-        <span className="text-sm text-emerald-700">{state.message}</span>
+        <span className="text-sm text-success">{state.message}</span>
       )}
     </div>
   );
@@ -537,8 +537,8 @@ export function KitAdmin({
   return (
     <div className="space-y-6">
       {draft ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <p className="text-sm font-medium text-amber-900">
+        <div className="rounded-lg border border-warning-border bg-warning-soft p-4">
+          <p className="text-sm font-medium text-warning">
             Draft v{draft.versionNumber} — {rules.length} rule
             {rules.length === 1 ? "" : "s"} · edits stay private until you publish.
           </p>
@@ -558,11 +558,11 @@ export function KitAdmin({
         const group = rules.filter((r) => r.rule_type === type);
         return (
           <section key={type} className="space-y-2">
-            <h2 className="text-sm font-semibold text-slate-700">
+            <h2 className="text-sm font-semibold text-foreground/85">
               {RULE_TYPE_LABELS[type]}
             </h2>
             {group.length === 0 && (
-              <p className="text-sm text-slate-400">No rules of this type yet.</p>
+              <p className="text-sm text-muted-foreground/70">No rules of this type yet.</p>
             )}
             {group.map((rule) =>
               editingId === rule.id ? (
