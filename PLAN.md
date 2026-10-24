@@ -194,3 +194,7 @@ Vitest unit tests for pure functions only: banned-term matcher, disclaimer check
   - Vercel: env vars set (cloud Supabase URL + anon key, GEMINI_API_KEY, GEMINI_MODEL); deployed from files (no GitHub App installed yet — install it to enable auto-deploy on push); SSO deployment protection disabled; production domain assigned.
   - Production smoke test: /login renders; / guarded; POST /api/checks on production → 4 cited findings in 4.5 s (banned → creator, AI claim → reviewer, tone + terminology → creator) against cloud DB + Gemini.
   - Cookie-name note for testing deployed builds: the SSR cookie derives from the Supabase host (`sb-<ref>-auth-token`) — local is `sb-127-auth-token`, cloud is `sb-nysbsquomciwnsrvnemp-auth-token`.
+
+- **24 Oct 2026 — performance pass on production.**
+  - Reported ~5s tab switches → three causes fixed: (1) `(app)/loading.tsx` skeleton so blocking routes stream instantly instead of dead air; (2) parallel DB queries (item page: 7 in one wave); (3) Vercel functions moved to `icn1` (Seoul) next to the cloud DB — was Washington DC.
+  - Measured on production: warm routes ~0.24s across /review, /items, /items/[id], /kit (was 0.6–0.67s; item detail 2.7× faster). Cold starts now rare and covered by the skeleton.
