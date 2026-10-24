@@ -18,6 +18,37 @@ human. See [PLAN.md](./PLAN.md) for the full build plan.
   to human review, never counted
 - pnpm
 
+## Why navigation feels instant
+
+The app is built on **Cache Components with Partial Prerendering** (Next 16):
+every route ships a prerendered **static shell** (sidebar, nav, page frame) that
+paints the moment you click, while only the small session-derived slots
+(review badge, workspace chip, user row) and page content stream in. Session
+reads use `"use cache: private"` — cached per browser, prefetch-eligible, never
+stored server-side. No route blocks on a server round trip; even a cold serverless
+function can't delay the first paint. A ↻ button in the sidebar soft-refreshes
+the current screen's server data (keeps scroll + filters) whenever you want
+fresh numbers without a full reload.
+
+Timestamps render through one pinned formatter (`en-IN` + `Asia/Kolkata`,
+`src/lib/format.ts`) so server and client always agree — times are IST
+everywhere, regardless of which region serves the request.
+
+## Upload safety
+
+Image uploads are restricted in depth against oversized and "decompression
+bomb" files (a tiny PNG claiming huge dimensions can make decoders allocate
+gigabytes):
+
+1. **Browser** — size/type checked before anything is created (10 MB, PNG/JPEG only)
+2. **Storage** — the private `content` bucket caps files at 10 MB
+   ([migration 0002](./supabase/migrations/0002_image_limits.sql))
+3. **Pre-decode probe** — dimensions are read from PNG/JPEG *headers only*
+   (caps: 10 MB / 30 MP / 12,000 px per side; shared by client and server in
+   `src/lib/checks/image-limits.ts`)
+4. **Honest failure** — a rejected image produces a specific `needs_human`
+   finding and an "incomplete" banner, never a crash or a silent pass
+
 ## Quickstart
 
 ### Option A — local Supabase stack (recommended for development)
@@ -92,20 +123,31 @@ absent — it never reports a silent pass).
 ```
 supabase/
   migrations/0001_init.sql   # schema, RLS, triggers, storage (run once)
+  migrations/0002_image_limits.sql  # 10 MB cap on the content bucket
   bootstrap.sql              # trusted first-admin + workspace setup
 src/
   proxy.ts                   # Next 16 proxy (ex-middleware): session + route guard
   app/
     login/                   # sign in / sign up (no role picker — by design)
     auth/                    # callback (email links) + signout route handlers
-    (app)/                   # authenticated shell (header with role badge)
+    (app)/                   # authenticated shell — static PPR shell + streaming slots
+  components/
+    app-nav.tsx              # shell nav (prerender-safe, active state behind a boundary)
+    refresh-button.tsx       # soft refresh of server data
+    ui/                      # shadcn-style primitives (card, button, input, …)
   lib/
     supabase/                # browser / server / proxy clients
+    auth.ts                  # use cache:private session reads (shell holes)
+    cached.ts                # tagged server-side read models (kit context)
+    format.ts                # pinned IST timestamp formatting
+    checks/                  # deterministic + AI checkers, image limits
     env.ts, types.ts         # env guard, roles
 ```
 
 ## Status
 
 Milestone tracker lives in [PLAN.md](./PLAN.md) §8. Current: **deployed through
-M9** — live at https://vcon-six.vercel.app (acceptance run in
-[docs/acceptance.md](./docs/acceptance.md) §5).
+M9 + the instant-navigation pass** — live at https://vcon-six.vercel.app
+(PPR shells on every route, image restrictor, IST timestamps; acceptance run in
+[docs/acceptance.md](./docs/acceptance.md) §5, build evidence in PLAN.md
+§14–15).
