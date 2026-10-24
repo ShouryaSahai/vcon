@@ -198,3 +198,9 @@ Vitest unit tests for pure functions only: banned-term matcher, disclaimer check
 - **24 Oct 2026 — performance pass on production.**
   - Reported ~5s tab switches → three causes fixed: (1) `(app)/loading.tsx` skeleton so blocking routes stream instantly instead of dead air; (2) parallel DB queries (item page: 7 in one wave); (3) Vercel functions moved to `icn1` (Seoul) next to the cloud DB — was Washington DC.
   - Measured on production: warm routes ~0.24s across /review, /items, /items/[id], /kit (was 0.6–0.67s; item detail 2.7× faster). Cold starts now rare and covered by the skeleton.
+
+- **24 Oct 2026 — WP2 + WP6 shipped (external review follow-ups; P0 DB-enforcement deferred by choice).**
+  - External security review verified claim-by-claim against the code — most findings confirmed (P0 DB role bypass, P0 incomplete-as-clean, P1s on state machine/cross-item mutation/non-atomic audit/uploads; P2s). Full assessment delivered to the team; hardening plan WP1–WP5 estimated (~5.5 days) and parked.
+  - **WP2 shipped:** explicit per-checker outcomes in the check summary (`ran`/`skipped`/`failed`/`not_applicable`) + `outcome: complete|incomplete`; kit-rule load errors fail closed; failed/skipped checkers add needs_human findings routed to reviewers; item page shows an incomplete warning banner and honest findings copy. Verified BOTH ways live: unconfigured AI → incomplete + banner + needs_human finding; configured AI → complete, no banner.
+  - **WP6 shipped:** callback open-redirect guard (local paths only); review queue split (Awaiting verdict vs With creators) with confidence displayed; README accuracy (live URL, REST-based Gemini, files-based deploy).
+  - Cloud roles note: reviewer/approver roles are role-grant operations — after a fresh cloud project they must be (re)applied via trusted SQL (bootstrap covers admin only; the attach/grant snippet covers the rest).
