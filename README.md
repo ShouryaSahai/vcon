@@ -96,6 +96,15 @@ Users verified during setup: `admin@vcon.test`, `creator@vcon.test`,
 Disable email confirmation for quick demos: Supabase → **Authentication →
 Providers → Email → turn off "Confirm email"** (or confirm via the inbox link).
 
+### Judge demo card (production)
+
+When `NEXT_PUBLIC_DEMO_EMAIL` + `NEXT_PUBLIC_DEMO_PASSWORD` are set in the
+deployment environment, `/login` renders a one-click **"Try the demo"** card
+that signs in a demo-only account against the seeded GlowNaturals workspace.
+With both unset the card is hidden entirely. The values are public by design
+(they are shown on the login screen) — never point them at a real user, and
+never commit them: they live only in the deployment env.
+
 ## Security model (do not weaken)
 
 - `handle_new_user()` always sets `role = 'creator'`, `workspace_id = NULL`.
@@ -105,6 +114,9 @@ Providers → Email → turn off "Confirm email"** (or confirm via the inbox lin
   `NEXT_PUBLIC_`, never committed.
 - Storage paths are `content/<workspace_id>/<item_id>/<file>`; policies pin
   the first path segment to the caller's workspace.
+- `POST /api/checks` is per-user rate limited (3 runs / 5 min, in-memory per
+  server instance) to protect the shared Gemini quota on public demo links;
+  rejected or failed lookups never consume a slot.
 
 ## Deploy (Vercel)
 
@@ -117,7 +129,9 @@ preview links.
 Environment variables the deployment needs: `NEXT_PUBLIC_SUPABASE_URL`,
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`, plus `GEMINI_API_KEY` and `GEMINI_MODEL`
 (the AI checker degrades to explicit `needs human` findings when the key is
-absent — it never reports a silent pass).
+absent — it never reports a silent pass). Optional:
+`NEXT_PUBLIC_DEMO_EMAIL` / `NEXT_PUBLIC_DEMO_PASSWORD` enable the one-click
+judge demo card on `/login` (see Quickstart).
 
 ## Project structure
 
@@ -152,3 +166,9 @@ M9 + the instant-navigation pass** — live at https://vcon-six.vercel.app
 (PPR shells on every route, image restrictor, IST timestamps; acceptance run in
 [docs/acceptance.md](./docs/acceptance.md) §5, build evidence in PLAN.md
 §14–15).
+
+Latest pass (committed; not yet on the Vercel deploy): env-driven judge demo
+card on `/login`, responsive shell (the sidebar becomes a horizontal top bar
+below laptop width, and status pills never clip on small screens), a shared
+no-workspace notice, per-user rate limiting on check runs — lint-clean,
+41/41 tests, build green.
