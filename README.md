@@ -5,8 +5,9 @@ Pre-publication brand governance platform — FutureStack Hackathon, Round 2 bui
 it goes public. Every flag is explained, cites its rule, and is decided by a
 human. See [PLAN.md](./PLAN.md) for the full build plan.
 
-**Live:** https://vcon-six.vercel.app · Demo logins in §5 of
-[docs/acceptance.md](./docs/acceptance.md) (demo data only).
+**Live:** https://vcon-six.vercel.app · Seeded demo data only (GlowNaturals
+brand kit; no real brand material — see [docs/acceptance.md](./docs/acceptance.md)
+for the full acceptance run).
 
 ## Stack
 
