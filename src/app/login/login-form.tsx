@@ -5,6 +5,16 @@ import { useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 
+/**
+ * Optional judge/demo fast path. Set NEXT_PUBLIC_DEMO_EMAIL +
+ * NEXT_PUBLIC_DEMO_PASSWORD in the deployment env (values are public by
+ * design — they are demo credentials shown on this screen) and the card
+ * below renders a one-click demo sign-in. Absent env → hidden.
+ */
+const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_EMAIL;
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD;
+const DEMO_READY = Boolean(DEMO_EMAIL && DEMO_PASSWORD);
+
 export function LoginForm({ authError }: { authError: boolean }) {
   const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -148,6 +158,57 @@ export function LoginForm({ authError }: { authError: boolean }) {
         New accounts start as <strong>Creator</strong> with no workspace. Your workspace admin
         assigns roles and workspace access — never through this form.
       </p>
+
+      {DEMO_READY && (
+        <div className="mt-4 rounded-lg border border-primary/25 bg-accent/40 p-3.5">
+          <p className="text-xs font-semibold uppercase tracking-[0.06em] text-accent-foreground">
+            For judges
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Explore the seeded <strong>GlowNaturals</strong> workspace instantly — findings,
+            review queue, and the full decision trail.
+          </p>
+          <DemoSignIn email={DEMO_EMAIL!} password={DEMO_PASSWORD!} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DemoSignIn({ email, password }: { email: string; password: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function demoSignIn() {
+    setBusy(true);
+    setError(null);
+    const { error } = await createClient().auth.signInWithPassword({ email, password });
+    if (error) {
+      setError(error.message);
+      setBusy(false);
+      return;
+    }
+    router.replace("/");
+    router.refresh();
+  }
+
+  return (
+    <div className="mt-2.5">
+      <button
+        type="button"
+        onClick={demoSignIn}
+        disabled={busy}
+        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20 disabled:opacity-60"
+      >
+        {busy ? "Signing in…" : "⚡ Try the demo"}
+      </button>
+      <p className="mt-2 break-all font-mono text-[10.5px] leading-relaxed text-muted-foreground">
+        {email} · {password}
+      </p>
+      {error && (
+        <p className="mt-1.5 text-xs text-destructive">{error}</p>
+      )}
     </div>
   );
 }

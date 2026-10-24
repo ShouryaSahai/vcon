@@ -79,7 +79,7 @@ async function UserChip() {
       <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-sidebar-accent text-[10px] font-semibold text-sidebar-accent-foreground">
         {initials}
       </span>
-      <span className="min-w-0 leading-tight">
+      <span className="hidden min-w-0 leading-tight lg:block">
         <span className="block truncate text-xs font-medium text-sidebar-accent-foreground">
           {user.fullName || user.email}
         </span>
@@ -108,31 +108,38 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="grid min-h-screen grid-cols-[224px_1fr]">
-      {/* Sidebar — dark navy gradient in both themes */}
-      <aside className="sticky top-0 flex h-screen flex-col border-r border-sidebar-border [background:var(--sidebar-gradient)] px-2.5 py-3.5 text-sidebar-foreground">
-        <Link href="/items" className="mb-4 flex items-center gap-2 px-2.5 py-1.5">
+    <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[224px_1fr]">
+      {/* Sidebar — dark navy gradient; horizontal top bar below laptop width */}
+      <aside className="sticky top-0 z-20 flex flex-row items-center gap-2 overflow-x-auto border-b border-sidebar-border px-3 py-2 text-sidebar-foreground [background:var(--sidebar-gradient)] lg:h-screen lg:flex-col lg:items-stretch lg:overflow-x-visible lg:border-b-0 lg:border-r lg:px-2.5 lg:py-3.5">
+        <Link
+          href="/items"
+          className="flex shrink-0 items-center gap-2 px-1 py-1 lg:mb-4 lg:px-2.5 lg:py-1.5"
+        >
           <span className="grid h-[22px] w-[22px] place-items-center rounded-md bg-linear-to-br from-primary to-[#8B8AF5] text-[12px] font-bold text-sidebar-primary-foreground shadow-md shadow-primary/40">
             V
           </span>
           <span className="text-sm font-semibold tracking-tight text-white">Vcon</span>
         </Link>
 
-        <div className="px-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/50">
+        <div className="hidden px-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/50 lg:block">
           Workspace
         </div>
-        <AppNav reviewBadge={<Suspense fallback={null}><ReviewBadge /></Suspense>} />
+        <div className="min-w-0 flex-1 lg:flex-none">
+          <AppNav reviewBadge={<Suspense fallback={null}><ReviewBadge /></Suspense>} />
+        </div>
 
-        <div className="flex-1" />
+        <div className="hidden flex-1 lg:block" />
 
-        <div className="px-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/50">
+        <div className="hidden px-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/50 lg:block">
           Context
         </div>
-        <Suspense fallback={<ChipSkeleton className="mb-2 h-[52px] border border-sidebar-border" />}>
-          <WorkspaceChip />
-        </Suspense>
+        <div className="hidden lg:block">
+          <Suspense fallback={<ChipSkeleton className="mb-2 h-[52px] border border-sidebar-border" />}>
+            <WorkspaceChip />
+          </Suspense>
+        </div>
 
-        <div className="flex items-center gap-2.5 rounded-lg px-2.5 py-2">
+        <div className="ml-auto flex shrink-0 items-center gap-1 rounded-lg px-1 py-1 lg:ml-0 lg:gap-2.5 lg:px-2.5 lg:py-2">
           <Suspense fallback={<ChipSkeleton className="h-6 w-6 rounded-full" />}>
             <UserChip />
           </Suspense>
@@ -156,7 +163,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="min-w-0 px-7 py-6">{children}</main>
+      <main className="min-w-0 px-4 py-4 lg:px-7 lg:py-6">{children}</main>
     </div>
   );
 }

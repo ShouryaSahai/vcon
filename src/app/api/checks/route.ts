@@ -4,6 +4,33 @@ import { createClient } from "@/lib/supabase/server";
 import { runChecks } from "@/lib/checks/run";
 
 /**
+ * Per-user rate limit (per server instance) — protects the shared Gemini
+ * quota on a public demo link from scripted spam. Deterrence, not a hard
+ * guarantee: instances are stateless on serverless platforms.
+ *
+ * The 429 gate runs early (cheap spam rejection), but a slot is only
+ * consumed by `recordRun` when the AI pipeline actually starts — so
+ * validation failures (bad body, missing item, unpublished kit) don't eat a
+ * judge's budget.
+ */
+const RATE_LIMIT = { max: 3, windowMs: 5 * 60 * 1000 };
+const checkRuns = new Map<string, number[]>();
+
+function rateLimited(userId: string): boolean {
+  const now = Date.now();
+  const recent = (checkRuns.get(userId) ?? []).filter((t) => now - t < RATE_LIMIT.windowMs);
+  checkRuns.set(userId, recent);
+  return recent.length >= RATE_LIMIT.max;
+}
+
+function recordRun(userId: string): void {
+  const now = Date.now();
+  const recent = (checkRuns.get(userId) ?? []).filter((t) => now - t < RATE_LIMIT.windowMs);
+  recent.push(now);
+  checkRuns.set(userId, recent);
+}
+
+/**
  * Creates a check job for a content item and runs the pipeline.
  * Auth: signed-in user; the item must be visible to them (RLS-scoped read).
  */
@@ -14,6 +41,12 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+  if (rateLimited(user.id)) {
+    return NextResponse.json(
+      { error: "Too many check runs — wait a few minutes and try again." },
+      { status: 429 },
+    );
   }
 
   let itemId: string;
@@ -68,6 +101,7 @@ export async function POST(request: Request) {
   await supabase.from("content_items").update({ status: "checking" }).eq("id", item.id);
 
   const startedAt = Date.now();
+  recordRun(user.id);
   try {
     const summary = await runChecks(supabase, item, check.id);
     return NextResponse.json({

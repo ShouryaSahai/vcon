@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { NoWorkspaceNotice } from "@/components/no-workspace-notice";
 import {
   Card,
   CardDescription,
@@ -24,17 +25,7 @@ export default async function UploadPage() {
     .maybeSingle();
 
   if (!profile?.workspace_id) {
-    return (
-      <Card className="max-w-xl">
-        <CardHeader>
-          <CardTitle>No workspace yet</CardTitle>
-          <CardDescription>
-            Your account is not attached to a workspace, so you cannot upload
-            content (RLS enforced). Ask an admin to attach you.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
+    return <NoWorkspaceNotice />;
   }
 
   // The version every check must run against: the kit's current published one.
@@ -57,7 +48,7 @@ export default async function UploadPage() {
         <CardHeader>
           <CardTitle>No published brand kit</CardTitle>
           <CardDescription>
-            Content is checked against the kit's current published version.
+            Content is checked against the kit&#39;s current published version.
             An admin needs to create and publish a brand kit first.
           </CardDescription>
         </CardHeader>

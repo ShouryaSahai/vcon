@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { NoWorkspaceNotice } from "@/components/no-workspace-notice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,12 +31,7 @@ export default async function KitPage() {
     .maybeSingle();
 
   if (!profile?.workspace_id) {
-    return (
-      <Notice
-        title="No workspace yet"
-        body="Your account is not attached to a workspace, so the brand kit is not visible (RLS enforced). Ask an admin to attach you, or run supabase/bootstrap.sql for the first admin."
-      />
-    );
+    return <NoWorkspaceNotice />;
   }
 
   const isAdmin = profile.role === "admin";
@@ -109,15 +105,6 @@ export default async function KitPage() {
       ) : (
         <ReadOnlyRules rules={rules ?? []} />
       )}
-    </div>
-  );
-}
-
-function Notice({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-lg border border-warning-border bg-warning-soft p-4">
-      <p className="text-sm font-medium text-warning">{title}</p>
-      <p className="mt-1 text-sm text-warning/80">{body}</p>
     </div>
   );
 }

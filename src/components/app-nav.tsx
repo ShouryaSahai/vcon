@@ -40,11 +40,11 @@ export function AppNav({ reviewBadge }: { reviewBadge?: React.ReactNode }) {
 
 function NavLinksStatic() {
   return (
-    <nav className="mt-1 space-y-px">
+    <nav className="flex gap-1 lg:mt-1 lg:block lg:space-y-px">
       {LINKS.map((link) => (
         <span
           key={link.href}
-          className="flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] font-medium text-sidebar-foreground/70"
+          className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-sidebar-foreground/70 lg:py-[7px]"
         >
           <Icon name={link.icon} />
           {link.label}
@@ -58,7 +58,7 @@ function NavLinksDynamic({ reviewBadge }: { reviewBadge?: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <nav className="mt-1 space-y-px">
+    <nav className="flex gap-1 lg:mt-1 lg:block lg:space-y-px">
       {LINKS.map((link) => {
         const active =
           link.href === "/items"
@@ -69,7 +69,7 @@ function NavLinksDynamic({ reviewBadge }: { reviewBadge?: React.ReactNode }) {
             key={link.href}
             href={link.href}
             aria-current={active ? "page" : undefined}
-            className={`flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] font-medium transition-colors ${
+            className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors lg:py-[7px] ${
               active
                 ? "bg-sidebar-accent text-sidebar-accent-foreground"
                 : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"

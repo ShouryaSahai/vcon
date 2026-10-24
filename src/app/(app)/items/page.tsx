@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 
-import { StatusPill } from "@/components/indicators";
+import { NoWorkspaceNotice } from "@/components/no-workspace-notice";
 import { createClient } from "@/lib/supabase/server";
 import type { Severity } from "@/lib/db-types";
 
@@ -22,16 +22,7 @@ export default async function ItemsPage() {
     .maybeSingle();
 
   if (!profile?.workspace_id) {
-    return (
-      <div className="mx-auto max-w-xl pt-4">
-        <div className="rounded-xl border border-border bg-card p-6">
-          <p className="font-semibold">No workspace yet</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Attach your account to a workspace to see content items (RLS enforced).
-          </p>
-        </div>
-      </div>
-    );
+    return <NoWorkspaceNotice />;
   }
 
   const [{ data: items }, { data: allFindings }, { data: kit }] = await Promise.all([

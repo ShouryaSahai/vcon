@@ -89,7 +89,7 @@ export function ItemsBrowser({
               <Link
                 key={item.id}
                 href={`/items/${item.id}`}
-                className="group grid grid-cols-[minmax(0,1fr)_200px_100px_140px] items-center gap-4 border-b border-border px-4.5 py-3 transition-colors last:border-none hover:bg-muted/50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring/40"
+                className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border px-4 py-3 transition-colors last:border-none hover:bg-muted/50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring/40 lg:grid-cols-[minmax(0,1fr)_200px_100px_140px] lg:gap-4 lg:px-4.5"
               >
                 <div className="min-w-0">
                   <span className="block text-[11px] text-muted-foreground">
@@ -100,7 +100,7 @@ export function ItemsBrowser({
                     {item.snippet || "No text content"}
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="hidden flex-wrap gap-1.5 lg:flex">
                   {sev.length === 0 ? (
                     <span className="rounded-full border border-success-border bg-success-soft px-2 py-0.5 text-[10.5px] font-semibold text-success">
                       clean
@@ -111,7 +111,7 @@ export function ItemsBrowser({
                     ))
                   )}
                 </div>
-                <span className="text-xs text-muted-foreground">{kitLabel}</span>
+                <span className="hidden text-xs text-muted-foreground lg:block">{kitLabel}</span>
                 <span className="text-right">
                   <StatusPill status={item.status} />
                   <span className="mt-1 block text-[11px] text-muted-foreground">
