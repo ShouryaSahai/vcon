@@ -13,7 +13,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 /**
  * Gate for every kit mutation: signed-in + workspace assigned + admin role.
  * RLS is the enforcement point; this is the app-layer second check
- * (defence in depth, per PLAN.md §10).
+ * (defence in depth — see the security model in the README).
  */
 async function requireAdmin(): Promise<
   { error: string } | { supabase: SupabaseServerClient; workspaceId: string }
