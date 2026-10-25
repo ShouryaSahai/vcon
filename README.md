@@ -3,7 +3,8 @@
 **Pre-publication brand governance for marketing content.** Vcon checks text and images against a versioned brand kit before they go public. Every finding should explain the issue, cite its rule, and route decisions to a human.
 
 **Live app:** https://vcon-six.vercel.app  
-**Demo data:** synthetic GlowNaturals examples only.
+**Demo data:** synthetic GlowNaturals examples only.  
+**License:** [MIT](./LICENSE).
 
 See [PLAN.md](./PLAN.md) for a concise project overview and verification caveats, and [docs/acceptance.md](./docs/acceptance.md) for the seeded acceptance matrix.
 
@@ -100,6 +101,7 @@ src/
 docs/
   acceptance.md    seeded acceptance test matrix and recorded run
 PLAN.md            project summary, migration order, release caveats
+LICENSE            MIT license
 ```
 
 ## Verification
