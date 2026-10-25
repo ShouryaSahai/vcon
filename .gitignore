@@ -30,7 +30,8 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# Secrets and local environment files: never commit real values.
+# The only intentionally tracked env file is the blank template.
 .env*
 !.env.example
 

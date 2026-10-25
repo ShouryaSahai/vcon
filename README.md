@@ -1,174 +1,114 @@
 # Vcon
 
-Pre-publication brand governance platform — FutureStack Hackathon, Round 2 build
-(Team CON-V). Content is checked against a company's approved brand kit before
-it goes public. Every flag is explained, cites its rule, and is decided by a
-human. See [PLAN.md](./PLAN.md) for the full build plan.
+**Pre-publication brand governance for marketing content.** Vcon checks text and images against a versioned brand kit before they go public. Every finding should explain the issue, cite its rule, and route decisions to a human.
 
-**Live:** https://vcon-six.vercel.app · Seeded demo data only (GlowNaturals
-brand kit; no real brand material — see [docs/acceptance.md](./docs/acceptance.md)
-for the full acceptance run).
+**Live app:** https://vcon-six.vercel.app  
+**Demo data:** synthetic GlowNaturals examples only.
+
+See [PLAN.md](./PLAN.md) for a concise project overview and verification caveats, and [docs/acceptance.md](./docs/acceptance.md) for the seeded acceptance matrix.
+
+## Features
+
+- Versioned brand kits and rules for claims, tone, terminology, disclaimers, banned/required terms, colours, and alt text.
+- Deterministic checks plus grounded AI-assisted checks.
+- Findings with explanations, locations, cited rules, confidence where available, and suggested fixes.
+- Creator, reviewer, and approver workflow with comments, decision history, and linked resubmissions.
+- Private image storage, image-size/dimension checks, and rate limiting for check requests.
+- Synthetic sample brand data; no customer material is required for the demo.
 
 ## Stack
 
-- **Next.js 16** (App Router, TypeScript, Tailwind v4) on Vercel
-- **Supabase** — Postgres (RLS everywhere), Auth, Storage
-- **Gemini** — deterministic checks run first; tone/claim/terminology rules are
-  judged by the model via structured REST calls (thinking disabled, 45 s
-  timeout), with citations enforced in code — an uncited AI finding is routed
-  to human review, never counted
-- pnpm
+- **Next.js 16** App Router, TypeScript, Tailwind CSS
+- **Supabase** Postgres, Auth, and private Storage
+- **Gemini** for server-side AI-assisted checks
+- **Vercel** hosting
+- **pnpm**, ESLint, and Vitest
 
-## Why navigation feels instant
+## Quickstart — local development
 
-The app is built on **Cache Components with Partial Prerendering** (Next 16):
-every route ships a prerendered **static shell** (sidebar, nav, page frame) that
-paints the moment you click, while only the small session-derived slots
-(review badge, workspace chip, user row) and page content stream in. Session
-reads use `"use cache: private"` — cached per browser, prefetch-eligible, never
-stored server-side. No route blocks on a server round trip; even a cold serverless
-function can't delay the first paint. A ↻ button in the sidebar soft-refreshes
-the current screen's server data (keeps scroll + filters) whenever you want
-fresh numbers without a full reload.
-
-Timestamps render through one pinned formatter (`en-IN` + `Asia/Kolkata`,
-`src/lib/format.ts`) so server and client always agree — times are IST
-everywhere, regardless of which region serves the request.
-
-## Upload safety
-
-Image uploads are restricted in depth against oversized and "decompression
-bomb" files (a tiny PNG claiming huge dimensions can make decoders allocate
-gigabytes):
-
-1. **Browser** — size/type checked before anything is created (10 MB, PNG/JPEG only)
-2. **Storage** — the private `content` bucket caps files at 10 MB
-   ([migration 0002](./supabase/migrations/0002_image_limits.sql))
-3. **Pre-decode probe** — dimensions are read from PNG/JPEG *headers only*
-   (caps: 10 MB / 30 MP / 12,000 px per side; shared by client and server in
-   `src/lib/checks/image-limits.ts`)
-4. **Honest failure** — a rejected image produces a specific `needs_human`
-   finding and an "incomplete" banner, never a crash or a silent pass
-
-## Quickstart
-
-### Option A — local Supabase stack (recommended for development)
-
-Prereqs: pnpm, Docker (any local daemon — Colima works; pass `DOCKER_HOST` if
-your socket is not the default).
+Prerequisites: Node.js, pnpm, Docker, and the Supabase CLI.
 
 ```bash
 pnpm install
-supabase start          # prints URL + keys; add DOCKER_HOST=... if needed
-supabase db reset       # applies migrations, then runs supabase/seed.sql
+supabase start
+supabase db reset
+cp .env.example .env.local
 ```
 
-`db reset` creates the **GlowNaturals** workspace + brand kit v1 (8 rules).
-Then:
+Use the local Supabase URL and publishable/anon key reported by `supabase status` to fill `.env.local`. Add a Gemini API key only if you want to exercise the AI-assisted checks. Keep all real credentials in the ignored local env file; never commit it.
+
+Run the app:
 
 ```bash
-cp .env.example .env.local   # fill from `supabase status` (URL + publishable key;
-                             # sb_secret_ is the service-role equivalent)
-pnpm build && pnpm start     # http://localhost:3000  (or: pnpm dev)
+pnpm dev
 ```
 
-Sign up in the app with your admin email, then run
-[`supabase/bootstrap.sql`](./supabase/bootstrap.sql) (edit `ADMIN_EMAIL_HERE`)
-in Studio's SQL editor (http://127.0.0.1:54323) or via
-`docker exec supabase_db_$(basename $PWD) psql -U postgres -d postgres`. That
-promotes the admin and attaches users — the only sanctioned elevation path.
+Open http://localhost:3000. The local database reset applies the migrations and seed data.
 
-Users verified during setup: `admin@vcon.test`, `creator@vcon.test`,
-`outsider@vcon.test` — password `password123` (local test data only).
+## Hosted Supabase setup
 
-### Option B — cloud Supabase project
+For a new hosted database, apply these files in order in the Supabase SQL editor, then run the seed:
 
-1. Create a project at [supabase.com](https://supabase.com) → SQL Editor → run
-   [`supabase/migrations/0001_init.sql`](./supabase/migrations/0001_init.sql)
-   → run [`supabase/seed.sql`](./supabase/seed.sql).
-2. `cp .env.example .env.local` → paste your project URL + API keys
-   (Settings → API; new projects use `sb_publishable_` / `sb_secret_` keys —
-   the variable names below stay the same).
-3. `pnpm dev`, sign up, run `supabase/bootstrap.sql` for the first admin.
+1. [Migration 0001 — schema and RLS](./supabase/migrations/0001_init.sql)
+2. [Migration 0002 — image upload limit](./supabase/migrations/0002_image_limits.sql)
+3. [Migration 0003 — database role enforcement](./supabase/migrations/0003_role_enforcement.sql)
+4. [Seed data](./supabase/seed.sql)
 
-### Demo tip
+Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for the client. Set `GEMINI_API_KEY` and `GEMINI_MODEL` as server-side environment variables for AI checks. A service-role secret, if used for trusted server operations, must remain server-side and must never be prefixed with `NEXT_PUBLIC_`.
 
-Disable email confirmation for quick demos: Supabase → **Authentication →
-Providers → Email → turn off "Confirm email"** (or confirm via the inbox link).
+**Important:** as of the last recorded check on 25 October 2026, migration 0003 was in GitHub but had not yet been applied to the hosted Supabase project. Do not assume its database-level role guards are active until that migration is applied and verified in the hosted environment.
 
-### Judge demo card (production)
+## Upload safety
 
-When `NEXT_PUBLIC_DEMO_EMAIL` + `NEXT_PUBLIC_DEMO_PASSWORD` are set in the
-deployment environment, `/login` renders a one-click **"Try the demo"** card
-that signs in a demo-only account against the seeded GlowNaturals workspace.
-With both unset the card is hidden entirely. The values are public by design
-(they are shown on the login screen) — never point them at a real user, and
-never commit them: they live only in the deployment env.
+1. Browser checks reject empty, oversized, or unsupported images before submission.
+2. The private Storage bucket has a 10 MB file cap when migration 0002 is applied.
+3. PNG/JPEG dimensions are probed from headers before image decoding (10 MB, 30 megapixels, 12,000 px per side).
+4. Rejected images produce an explicit needs-human/incomplete result rather than being silently accepted.
 
-## Security model (do not weaken)
+## Security model
 
-- `handle_new_user()` always sets `role = 'creator'`, `workspace_id = NULL`.
-  User metadata cannot grant roles.
-- RLS on every table, scoped by `workspace_id`. Unassigned users see nothing.
-- `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS — server-side only, never
-  `NEXT_PUBLIC_`, never committed.
-- Storage paths are `content/<workspace_id>/<item_id>/<file>`; policies pin
-  the first path segment to the caller's workspace.
-- `POST /api/checks` is per-user rate limited (3 runs / 5 min, in-memory per
-  server instance) to protect the shared Gemini quota on public demo links;
-  rejected or failed lookups never consume a slot.
+- New signups default to the creator role and do not gain a workspace or elevated role from client metadata.
+- RLS policies scope normal data access by workspace.
+- Database write guards are defined in migration 0003; apply and verify it in the hosted database before relying on those extra protections.
+- AI and Supabase secrets stay server-side in environment variables.
+- `.env*` files are ignored; only the blank `.env.example` is intentionally tracked.
+- The check endpoint uses a per-user in-memory rate limit. It is a demo safeguard, not a distributed quota system.
 
-## Deploy (Vercel)
+## Deployment
 
-Current setup: production deployments are created from the repository files
-via the Vercel API. To switch to auto-deploy on push, install the Vercel
-GitHub App (Vercel dashboard → Git Integrations) and link the `vcon` project
-to `ShouryaSahai/vcon` — after that, every push to `main` ships and PRs get
-preview links.
+The current project has been deployed separately from GitHub pushes; a push to `main` does not by itself prove that the live app was updated. Before a demo, verify the intended commit is deployed, sign in, test authenticated `/items`, `/review`, and `/upload`, and inspect fresh runtime logs.
 
-Environment variables the deployment needs: `NEXT_PUBLIC_SUPABASE_URL`,
-`NEXT_PUBLIC_SUPABASE_ANON_KEY`, plus `GEMINI_API_KEY` and `GEMINI_MODEL`
-(the AI checker degrades to explicit `needs human` findings when the key is
-absent — it never reports a silent pass). Optional:
-`NEXT_PUBLIC_DEMO_EMAIL` / `NEXT_PUBLIC_DEMO_PASSWORD` enable the one-click
-judge demo card on `/login` (see Quickstart).
+A Next.js `Date.now()` prerender error was previously observed in the hosted auth/session path. Treat authenticated routes as unverified until that issue is resolved and the smoke test passes.
+
+The optional `NEXT_PUBLIC_DEMO_EMAIL` and `NEXT_PUBLIC_DEMO_PASSWORD` variables display a one-click demo card only when both are configured. Use a dedicated demo-only account with synthetic data. Those values are intentionally visible to browser users and must never represent a personal account.
 
 ## Project structure
 
 ```
 supabase/
-  migrations/0001_init.sql   # schema, RLS, triggers, storage (run once)
-  migrations/0002_image_limits.sql  # 10 MB cap on the content bucket
-  bootstrap.sql              # trusted first-admin + workspace setup
+  migrations/0001_init.sql
+  migrations/0002_image_limits.sql
+  migrations/0003_role_enforcement.sql
+  seed.sql
+  bootstrap.sql
+  verify/0003_role_enforcement.sh
 src/
-  proxy.ts                   # Next 16 proxy (ex-middleware): session + route guard
-  app/
-    login/                   # sign in / sign up (no role picker — by design)
-    auth/                    # callback (email links) + signout route handlers
-    (app)/                   # authenticated shell — static PPR shell + streaming slots
-  components/
-    app-nav.tsx              # shell nav (prerender-safe, active state behind a boundary)
-    refresh-button.tsx       # soft refresh of server data
-    ui/                      # shadcn-style primitives (card, button, input, …)
-  lib/
-    supabase/                # browser / server / proxy clients
-    auth.ts                  # use cache:private session reads (shell holes)
-    cached.ts                # tagged server-side read models (kit context)
-    format.ts                # pinned IST timestamp formatting
-    checks/                  # deterministic + AI checkers, image limits
-    env.ts, types.ts         # env guard, roles
+  app/             Next.js routes and API handlers
+  components/      UI components
+  lib/checks/      deterministic and AI-assisted check pipeline
+  lib/supabase/    browser/server/proxy clients
+docs/
+  acceptance.md    seeded acceptance test matrix and recorded run
+PLAN.md            project summary, migration order, release caveats
 ```
 
-## Status
+## Verification
 
-Milestone tracker lives in [PLAN.md](./PLAN.md) §8. Current: **deployed through
-M9 + the instant-navigation pass** — live at https://vcon-six.vercel.app
-(PPR shells on every route, image restrictor, IST timestamps; acceptance run in
-[docs/acceptance.md](./docs/acceptance.md) §5, build evidence in PLAN.md
-§14–15).
+The latest checks recorded by the development environment on 25 October 2026 were lint clean, 41/41 tests passed, and production build successful. The local migration 0003 verification script reported 30/30 cases passed. These historical results do not replace a fresh check after code changes or a smoke test against the current hosted deployment.
 
-Latest pass (committed; not yet on the Vercel deploy): env-driven judge demo
-card on `/login`, responsive shell (the sidebar becomes a horizontal top bar
-below laptop width, and status pills never clip on small screens), a shared
-no-workspace notice, per-user rate limiting on check runs — lint-clean,
-41/41 tests, build green.
+```bash
+pnpm lint
+pnpm test
+pnpm build
+git diff --check
+```
