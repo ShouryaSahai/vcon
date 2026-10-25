@@ -79,7 +79,7 @@ Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for the clien
 
 The current project has been deployed separately from GitHub pushes; a push to `main` does not by itself prove that the live app was updated. Before a demo, verify the intended commit is deployed, sign in, test authenticated `/items`, `/review`, and `/upload`, and inspect fresh runtime logs.
 
-A Next.js `Date.now()` prerender error was previously observed in the hosted auth/session path. Treat authenticated routes as unverified until that issue is resolved and the smoke test passes.
+A Next.js `Date.now()` prerender error was previously observed in the hosted auth/session path. A full authenticated smoke test against the hosted app passed on 25 October 2026 (sign-up → session → authenticated `/items`, `/review`, `/kit`, and `/upload` all returned 200 with correct role-gated content), clearing that error for the deployed revision. Re-run the smoke test after deploying new commits.
 
 The optional `NEXT_PUBLIC_DEMO_EMAIL` and `NEXT_PUBLIC_DEMO_PASSWORD` variables display a one-click demo card only when both are configured. Use a dedicated demo-only account with synthetic data. Those values are intentionally visible to browser users and must never represent a personal account.
 
