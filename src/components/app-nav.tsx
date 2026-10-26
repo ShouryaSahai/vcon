@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
-import { FlaskConical, ShieldCheck, SwatchBook, Upload, Rows3 } from "lucide-react";
+import { BarChart3, FlaskConical, ShieldCheck, SwatchBook, Upload, Rows3 } from "lucide-react";
 
 const LINKS = [
   { href: "/upload", label: "Upload", icon: "upload" },
@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/review", label: "Review", icon: "review" },
   { href: "/kit", label: "Brand kit", icon: "kit" },
   { href: "/evals", label: "Evals", icon: "evals" },
+  { href: "/insights", label: "Insights", icon: "insights" },
 ] as const;
 
 function Icon({ name, active }: { name: string; active?: boolean }) {
@@ -23,6 +24,8 @@ function Icon({ name, active }: { name: string; active?: boolean }) {
     <ShieldCheck className={cls} />
   ) : name === "evals" ? (
     <FlaskConical className={cls} />
+  ) : name === "insights" ? (
+    <BarChart3 className={cls} />
   ) : (
     <SwatchBook className={cls} />
   );
