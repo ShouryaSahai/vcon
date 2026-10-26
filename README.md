@@ -104,6 +104,16 @@ PLAN.md            project summary, migration order, release caveats
 LICENSE            MIT license
 ```
 
+## Measured evaluation
+
+The claims are backed by a labeled eval set: 32 cases run through the real
+production checkers, per family in isolation, with exact attribution — a miss
+is a miss and a false flag is a false flag. The committed scorecard lives in
+`src/lib/evals/results.json` (machine-written by `pnpm test:evals`, never
+hand-edited), renders on the in-app **`/evals`** page, and the methodology is
+documented in [docs/evals.md](./docs/evals.md). The eval set runs as part of
+the test suite, so the numbers cannot drift silently.
+
 ## Verification
 
 The latest checks recorded by the development environment on 25 October 2026 were lint clean, 41/41 tests passed, and production build successful. The local migration 0003 verification script reported 30/30 cases passed. These historical results do not replace a fresh check after code changes or a smoke test against the current hosted deployment.

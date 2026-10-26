@@ -1,0 +1,430 @@
+{
+  "meta": {
+    "when": "2026-10-25T23:52:57.313Z",
+    "model": "(deterministic only)",
+    "aiEnabled": false,
+    "cases": 20
+  },
+  "totals": {
+    "pass": 20,
+    "fail": 0,
+    "detectionRate": 1,
+    "falseFlagRate": 0,
+    "citationRate": 1,
+    "avgLatencyMs": {
+      "deterministic": 0,
+      "ai": 0
+    }
+  },
+  "cases": [
+    {
+      "id": "D01",
+      "family": "deterministic",
+      "title": "Banned term “miracle glow”",
+      "notes": "E1 seeded error",
+      "ok": true,
+      "expected": [
+        "Banned: \"miracle\""
+      ],
+      "flagged": [
+        "Banned: \"miracle\""
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Banned: \"miracle\"",
+          "severity": "high",
+          "confidence": null,
+          "needsHuman": false,
+          "routedTo": "creator"
+        }
+      ],
+      "latencyMs": 0
+    },
+    {
+      "id": "D02",
+      "family": "deterministic",
+      "title": "Banned variant “miraculous”",
+      "notes": "second term in same rule payload",
+      "ok": true,
+      "expected": [
+        "Banned: \"miracle\""
+      ],
+      "flagged": [
+        "Banned: \"miracle\""
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Banned: \"miracle\"",
+          "severity": "high",
+          "confidence": null,
+          "needsHuman": false,
+          "routedTo": "creator"
+        }
+      ],
+      "latencyMs": 0
+    },
+    {
+      "id": "D03",
+      "family": "deterministic",
+      "title": "Banned “chemical-free”",
+      "notes": "hyphenated form",
+      "ok": true,
+      "expected": [
+        "Banned: \"chemical-free\""
+      ],
+      "flagged": [
+        "Banned: \"chemical-free\""
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Banned: \"chemical-free\"",
+          "severity": "high",
+          "confidence": null,
+          "needsHuman": false,
+          "routedTo": "creator"
+        }
+      ],
+      "latencyMs": 0
+    },
+    {
+      "id": "D04",
+      "family": "deterministic",
+      "title": "Banned “chemical free”",
+      "notes": "space form of the same banned term",
+      "ok": true,
+      "expected": [
+        "Banned: \"chemical-free\""
+      ],
+      "flagged": [
+        "Banned: \"chemical-free\""
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Banned: \"chemical-free\"",
+          "severity": "high",
+          "confidence": null,
+          "needsHuman": false,
+          "routedTo": "creator"
+        }
+      ],
+      "latencyMs": 0
+    },
+    {
+      "id": "D05",
+      "family": "deterministic",
+      "title": "Word boundary: “Miracles happen”",
+      "notes": "substring must NOT match (word-boundary anchoring)",
+      "ok": true,
+      "expected": [],
+      "flagged": [],
+      "missing": [],
+      "extras": [],
+      "findings": [],
+      "latencyMs": 0
+    },
+    {
+      "id": "D06",
+      "family": "deterministic",
+      "title": "Case-insensitive: “MIRACLE”",
+      "notes": "case-insensitive matching",
+      "ok": true,
+      "expected": [
+        "Banned: \"miracle\""
+      ],
+      "flagged": [
+        "Banned: \"miracle\""
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Banned: \"miracle\"",
+          "severity": "high",
+          "confidence": null,
+          "needsHuman": false,
+          "routedTo": "creator"
+        }
+      ],
+      "latencyMs": 0
+    },
+    {
+      "id": "D07",
+      "family": "deterministic",
+      "title": "Performance claim without disclaimer",
+      "notes": "E3 seeded error",
+      "ok": true,
+      "expected": [
+        "Disclaimer with performance claims"
+      ],
+      "flagged": [
+        "Disclaimer with performance claims"
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Disclaimer with performance claims",
+          "severity": "medium",
+          "confidence": null,
+          "needsHuman": false,
+          "routedTo": "creator"
+        }
+      ],
+      "latencyMs": 0
+    },
+    {
+      "id": "D08",
+      "family": "deterministic",
+      "title": "Trigger present, disclaimer present",
+      "notes": "required text satisfies the rule",
+      "ok": true,
+      "expected": [],
+      "flagged": [],
+      "missing": [],
+      "extras": [],
+      "findings": [],
+      "latencyMs": 0
+    },
+    {
+      "id": "D09",
+      "family": "deterministic",
+      "title": "No performance claim at all",
+      "notes": "trigger absent → disclaimer not required",
+      "ok": true,
+      "expected": [],
+      "flagged": [],
+      "missing": [],
+      "extras": [],
+      "findings": [],
+      "latencyMs": 0
+    },
+    {
+      "id": "D10",
+      "family": "deterministic",
+      "title": "Image with no alt text",
+      "notes": "E5 seeded error",
+      "ok": true,
+      "expected": [
+        "Alt text required"
+      ],
+      "flagged": [
+        "Alt text required"
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Alt text required",
+          "severity": "medium",
+          "confidence": null,
+          "needsHuman": false,
+          "routedTo": "creator"
+        }
+      ],
+      "latencyMs": 1
+    },
+    {
+      "id": "D11",
+      "family": "deterministic",
+      "title": "Alt text under minimum length",
+      "notes": "min_length 20",
+      "ok": true,
+      "expected": [
+        "Alt text required"
+      ],
+      "flagged": [
+        "Alt text required"
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Alt text required",
+          "severity": "medium",
+          "confidence": null,
+          "needsHuman": false,
+          "routedTo": "creator"
+        }
+      ],
+      "latencyMs": 0
+    },
+    {
+      "id": "D12",
+      "family": "deterministic",
+      "title": "Valid alt text",
+      "notes": "≥ 20 characters",
+      "ok": true,
+      "expected": [],
+      "flagged": [],
+      "missing": [],
+      "extras": [],
+      "findings": [],
+      "latencyMs": 0
+    },
+    {
+      "id": "D13",
+      "family": "deterministic",
+      "title": "Alt text on a text post",
+      "notes": "policy applies to images only",
+      "ok": true,
+      "expected": [],
+      "flagged": [],
+      "missing": [],
+      "extras": [],
+      "findings": [],
+      "latencyMs": 0
+    },
+    {
+      "id": "D14",
+      "family": "deterministic",
+      "title": "Off-palette hot pink",
+      "notes": "E4 seeded error",
+      "ok": true,
+      "expected": [
+        "Approved palette"
+      ],
+      "flagged": [
+        "Approved palette"
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Approved palette",
+          "severity": "low",
+          "confidence": null,
+          "needsHuman": false,
+          "routedTo": "creator"
+        }
+      ],
+      "latencyMs": 0
+    },
+    {
+      "id": "D15",
+      "family": "deterministic",
+      "title": "On-palette sage",
+      "notes": "exact palette colour",
+      "ok": true,
+      "expected": [],
+      "flagged": [],
+      "missing": [],
+      "extras": [],
+      "findings": [],
+      "latencyMs": 0
+    },
+    {
+      "id": "D16",
+      "family": "deterministic",
+      "title": "On-palette honey",
+      "ok": true,
+      "expected": [],
+      "flagged": [],
+      "missing": [],
+      "extras": [],
+      "findings": [],
+      "latencyMs": 0
+    },
+    {
+      "id": "D17",
+      "family": "deterministic",
+      "title": "Slightly off-palette",
+      "notes": "just past the ΔE 10 limit",
+      "ok": true,
+      "expected": [
+        "Approved palette"
+      ],
+      "flagged": [
+        "Approved palette"
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Approved palette",
+          "severity": "low",
+          "confidence": null,
+          "needsHuman": false,
+          "routedTo": "creator"
+        }
+      ],
+      "latencyMs": 0
+    },
+    {
+      "id": "D18",
+      "family": "deterministic",
+      "title": "Three violations in one caption",
+      "notes": "multi-hit attribution",
+      "ok": true,
+      "expected": [
+        "Banned: \"miracle\"",
+        "Banned: \"chemical-free\"",
+        "Disclaimer with performance claims"
+      ],
+      "flagged": [
+        "Banned: \"miracle\"",
+        "Banned: \"chemical-free\"",
+        "Disclaimer with performance claims"
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Banned: \"miracle\"",
+          "severity": "high",
+          "confidence": null,
+          "needsHuman": false,
+          "routedTo": "creator"
+        },
+        {
+          "rule": "Banned: \"chemical-free\"",
+          "severity": "high",
+          "confidence": null,
+          "needsHuman": false,
+          "routedTo": "creator"
+        },
+        {
+          "rule": "Disclaimer with performance claims",
+          "severity": "medium",
+          "confidence": null,
+          "needsHuman": false,
+          "routedTo": "creator"
+        }
+      ],
+      "latencyMs": 0
+    },
+    {
+      "id": "D19",
+      "family": "deterministic",
+      "title": "Clean caption",
+      "notes": "negative control (seeded)",
+      "ok": true,
+      "expected": [],
+      "flagged": [],
+      "missing": [],
+      "extras": [],
+      "findings": [],
+      "latencyMs": 0
+    },
+    {
+      "id": "D20",
+      "family": "deterministic",
+      "title": "Clean image post",
+      "notes": "on-palette image + valid alt text",
+      "ok": true,
+      "expected": [],
+      "flagged": [],
+      "missing": [],
+      "extras": [],
+      "findings": [],
+      "latencyMs": 0
+    }
+  ]
+}
