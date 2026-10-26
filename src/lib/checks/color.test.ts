@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   deltaE76,
+  deltaE2000,
   deltaEHex,
   dominantColor,
   hexToRgb,
@@ -65,6 +66,49 @@ describe("colour math", () => {
   it("converts sRGB white to Lab ~100", () => {
     const [L] = srgbToLab(255, 255, 255);
     expect(L).toBeCloseTo(100, 1);
+  });
+});
+
+describe("CIEDE2000", () => {
+  // Reference pairs from the published Sharma, Wu & Dalal (2005) test dataset.
+  it("matches the published reference values", () => {
+    const ref: [[number, number, number], [number, number, number], number][] = [
+      [[50.0, 2.6772, -79.7751], [50.0, 0.0, -82.7485], 2.0425],
+      [[50.0, 3.1571, -77.2803], [50.0, 0.0, -82.7485], 2.8615],
+      [[50.0, 2.8361, -74.02], [50.0, 0.0, -82.7485], 3.4412],
+      [[50.0, -1.3802, -84.2814], [50.0, 0.0, -82.7485], 1.0],
+      [[50.0, 2.5, 0.0], [50.0, 3.1736, 0.5854], 1.0],
+      [[60.2574, -34.0099, 36.2677], [60.4626, -34.1751, 39.4387], 1.2644],
+    ];
+    for (const [a, b, expected] of ref) {
+      expect(deltaE2000(a, b)).toBeCloseTo(expected, 4);
+    }
+  });
+
+  it("gives ΔE 0 for identical colours", () => {
+    const lab = srgbToLab(124, 154, 109);
+    expect(deltaE2000(lab, lab)).toBe(0);
+  });
+
+  it("fixes the CIE76 saturated-hue mis-pick for nearest palette colour", () => {
+    // Royal blue: CIE76 measures near-white Linen as "closest" (absurd);
+    // CIEDE2000's chroma/hue weighting picks Sage instead.
+    const blue = srgbToLab(65, 105, 225);
+    const sage = srgbToLab(124, 154, 109);
+    const honey = srgbToLab(232, 176, 75);
+    const linen = srgbToLab(245, 241, 232);
+    const nearest76 = [
+      { name: "Sage", d: deltaE76(blue, sage) },
+      { name: "Honey", d: deltaE76(blue, honey) },
+      { name: "Linen", d: deltaE76(blue, linen) },
+    ].sort((x, y) => x.d - y.d)[0];
+    const nearest2000 = [
+      { name: "Sage", d: deltaE2000(blue, sage) },
+      { name: "Honey", d: deltaE2000(blue, honey) },
+      { name: "Linen", d: deltaE2000(blue, linen) },
+    ].sort((x, y) => x.d - y.d)[0];
+    expect(nearest76.name).toBe("Linen"); // the old flaw
+    expect(nearest2000.name).toBe("Sage"); // the fix
   });
 });
 

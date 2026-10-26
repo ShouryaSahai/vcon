@@ -53,7 +53,8 @@ export function srgbToLab(r: number, g: number, b: number): [number, number, num
   return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
 }
 
-/** CIE76 ΔE — simple, deterministic, good enough for a demo threshold. */
+/** CIE76 ΔE — simple, deterministic. Superseded by CIEDE2000 for palette
+ *  matching (kept for continuity + the eval record of the upgrade). */
 export function deltaE76(
   a: [number, number, number],
   b: [number, number, number],
@@ -65,6 +66,75 @@ export function deltaEHex(hexA: string, hexB: string): number {
   const ca = hexToRgb(hexA);
   const cb = hexToRgb(hexB);
   return deltaE76(srgbToLab(ca.r, ca.g, ca.b), srgbToLab(cb.r, cb.g, cb.b));
+}
+
+/**
+ * CIEDE2000 ΔE (Sharma, Wu & Dalal 2005) — the perceptually-uniform upgrade
+ * over CIE76. CIE76 mis-picks "nearest" palette colours for saturated hues
+ * (magenta measured closest to near-white Linen); CIEDE2000's chroma/hue
+ * weighting fixes that. Reference-validated against the published test
+ * dataset in color.test.ts.
+ */
+export function deltaE2000(
+  [L1, a1, b1]: [number, number, number],
+  [L2, a2, b2]: [number, number, number],
+): number {
+  const rad = Math.PI / 180;
+  const C1 = Math.sqrt(a1 * a1 + b1 * b1);
+  const C2 = Math.sqrt(a2 * a2 + b2 * b2);
+  const Cbar = (C1 + C2) / 2;
+  const Cbar7 = Cbar ** 7;
+  const G = 0.5 * (1 - Math.sqrt(Cbar7 / (Cbar7 + 25 ** 7)));
+  const a1p = (1 + G) * a1;
+  const a2p = (1 + G) * a2;
+  const C1p = Math.sqrt(a1p * a1p + b1 * b1);
+  const C2p = Math.sqrt(a2p * a2p + b2 * b2);
+  const h1p = C1p === 0 ? 0 : (Math.atan2(b1, a1p) / rad + 360) % 360;
+  const h2p = C2p === 0 ? 0 : (Math.atan2(b2, a2p) / rad + 360) % 360;
+
+  const dLp = L2 - L1;
+  const dCp = C2p - C1p;
+  let dhp = 0;
+  if (C1p * C2p !== 0) {
+    const diff = h2p - h1p;
+    if (Math.abs(diff) <= 180) dhp = diff;
+    else if (diff > 180) dhp = diff - 360;
+    else dhp = diff + 360;
+  }
+  const dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin((dhp * rad) / 2);
+
+  const Lbp = (L1 + L2) / 2;
+  const Cbp = (C1p + C2p) / 2;
+  let hbp: number;
+  if (C1p * C2p === 0) hbp = h1p + h2p;
+  else if (Math.abs(h1p - h2p) <= 180) hbp = (h1p + h2p) / 2;
+  else if (h1p + h2p < 360) hbp = (h1p + h2p + 360) / 2;
+  else hbp = (h1p + h2p - 360) / 2;
+
+  const T =
+    1 -
+    0.17 * Math.cos((hbp - 30) * rad) +
+    0.24 * Math.cos(2 * hbp * rad) +
+    0.32 * Math.cos((3 * hbp + 6) * rad) -
+    0.2 * Math.cos((4 * hbp - 63) * rad);
+  const dTheta = 30 * Math.exp(-(((hbp - 275) / 25) ** 2));
+  const Cbp7 = Cbp ** 7;
+  const RC = 2 * Math.sqrt(Cbp7 / (Cbp7 + 25 ** 7));
+  const SL = 1 + (0.015 * (Lbp - 50) ** 2) / Math.sqrt(20 + (Lbp - 50) ** 2);
+  const SC = 1 + 0.045 * Cbp;
+  const SH = 1 + 0.015 * Cbp * T;
+  const RT = -Math.sin(2 * dTheta * rad) * RC;
+
+  const tL = dLp / SL;
+  const tC = dCp / SC;
+  const tH = dHp / SH;
+  return Math.sqrt(tL * tL + tC * tC + tH * tH + RT * tC * tH);
+}
+
+export function deltaE2000Hex(hexA: string, hexB: string): number {
+  const ca = hexToRgb(hexA);
+  const cb = hexToRgb(hexB);
+  return deltaE2000(srgbToLab(ca.r, ca.g, ca.b), srgbToLab(cb.r, cb.g, cb.b));
 }
 
 // ===== Dominant colour of a decoded image ===================================
@@ -134,7 +204,7 @@ export function checkBrandColor(rule: KitRule, image: RasterImage): FindingSeed[
   let nearest: { name: string; hex: string; delta_e: number } | null = null;
   for (const c of colors) {
     const rgb = hexToRgb(c.hex);
-    const d = deltaE76(dominantLab, srgbToLab(rgb.r, rgb.g, rgb.b));
+    const d = deltaE2000(dominantLab, srgbToLab(rgb.r, rgb.g, rgb.b));
     if (!nearest || d < nearest.delta_e) nearest = { name: c.name, hex: c.hex, delta_e: d };
   }
   if (!nearest) return [];
