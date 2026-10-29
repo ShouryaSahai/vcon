@@ -43,7 +43,7 @@ describe("deterministic eval cases", () => {
 describe.skipIf(!runAiCases)("ai eval cases (Gemini)", () => {
   for (const caseDef of EVAL_CASES.filter((c) => c.family === "ai")) {
     it(`${caseDef.id} — ${caseDef.title}`, async () => {
-      await sleep(6500); // pace: stay inside the model's per-minute rate limit
+      await sleep(10000); // pace: stay inside the model's per-minute rate limit
       const result = await runEvalCase(caseDef, true);
       shared.push(result);
       expect(result.degraded, "AI run degraded to needs-human — rate limit or bad output; rerun").toBeFalsy();
