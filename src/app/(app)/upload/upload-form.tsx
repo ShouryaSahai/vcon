@@ -44,7 +44,7 @@ export function UploadForm({
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [kind, setKind] = useState<"text" | "image">("text");
+  const [kind, setKind] = useState<"text" | "image" | "pdf">("text");
   const [context, setContext] = useState<ContextType>("instagram_post");
   const [text, setText] = useState("");
   const [altText, setAltText] = useState("");
@@ -62,6 +62,10 @@ export function UploadForm({
     }
     if (kind === "image" && !file) {
       setError("Choose an image file.");
+      return;
+    }
+    if (kind === "pdf" && !file) {
+      setError("Choose a PDF file.");
       return;
     }
     if (kind === "image" && altText.trim().length < 20) {
@@ -84,6 +88,16 @@ export function UploadForm({
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not signed in.");
 
+      let extractedText: string | null = null;
+      if (kind === "pdf" && file) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/extract-pdf", { method: "POST", body: fd });
+        const body = (await res.json().catch(() => null)) as { text?: string; error?: string } | null;
+        if (!res.ok || !body?.text) throw new Error(body?.error ?? "Could not read that PDF.");
+        extractedText = body.text;
+      }
+
       // 1) Create the item row (RLS: members insert into their own workspace).
       const { data: item, error: insertError } = await supabase
         .from("content_items")
@@ -92,8 +106,8 @@ export function UploadForm({
           kit_version_id: kitVersionId,
           created_by: user.id,
           context_type: context,
-          source_kind: kind,
-          text_content: kind === "text" ? text.trim() : null,
+          source_kind: kind === "image" ? "image" : "text",
+          text_content: kind === "text" ? text.trim() : kind === "pdf" ? extractedText : null,
           alt_text: kind === "image" ? altText.trim() : null,
         })
         .select("id")
@@ -142,7 +156,7 @@ export function UploadForm({
             <div className="space-y-1">
               <Label>Content type</Label>
               <div className="flex gap-2">
-                {(["text", "image"] as const).map((k) => (
+                {(["text", "image", "pdf"] as const).map((k) => (
                   <Button
                     key={k}
                     type="button"
@@ -154,7 +168,7 @@ export function UploadForm({
                       if (fileInputRef.current) fileInputRef.current.value = "";
                     }}
                   >
-                    {k === "text" ? "Text" : "Image"}
+                    {k === "text" ? "Text" : k === "image" ? "Image" : "PDF"}
                   </Button>
                 ))}
               </div>
@@ -176,7 +190,29 @@ export function UploadForm({
             </div>
           </div>
 
-          {kind === "text" ? (
+          {kind === "pdf" ? (
+            <div className="space-y-1">
+              <Label htmlFor="pdf">PDF with selectable text (max 10 MB)</Label>
+              <Input
+                id="pdf"
+                type="file"
+                accept="application/pdf"
+                onChange={(event) => {
+                  const selected = event.target.files?.[0] ?? null;
+                  if (selected && selected.size > MAX_IMAGE_BYTES) {
+                    setFile(null);
+                    setError("That PDF is " + formatBytes(selected.size) + " — the limit is " + formatBytes(MAX_IMAGE_BYTES) + ".");
+                    return;
+                  }
+                  setError(null);
+                  setFile(selected);
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                The text is extracted and checked against the same brand rules. Scanned PDFs are not supported yet.
+              </p>
+            </div>
+          ) : kind === "text" ? (
             <div className="space-y-1">
               <Label htmlFor="text">Content</Label>
               <Textarea
