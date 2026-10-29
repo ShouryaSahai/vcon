@@ -108,6 +108,27 @@ export default async function InsightsPage() {
   const ruleBars = [...byRule.entries()].sort((a, b) => b[1].count - a[1].count);
   const maxRuleCount = ruleBars[0]?.[1].count ?? 1;
 
+  // ---- guideline health: most overridden / repeatedly flagged rules ----------
+  const ruleHealth = new Map<string, { total: number; overridden: number; accepted: number }>();
+  for (const f of findingRows) {
+    if (!f.kit_rule_id) continue;
+    const name = ruleName.get(f.kit_rule_id);
+    if (!name) continue;
+    const e = ruleHealth.get(name) ?? { total: 0, overridden: 0, accepted: 0 };
+    e.total += 1;
+    if (f.status === "overridden") e.overridden += 1;
+    if (f.status === "fix_accepted") e.accepted += 1;
+    ruleHealth.set(name, e);
+  }
+  const ruleHealthRows = [...ruleHealth.entries()]
+    .map(([name, e]) => ({
+      name,
+      ...e,
+      overrideRate: Math.round((e.overridden / e.total) * 100),
+      unclear: e.total >= 2 && e.overridden / e.total >= 0.5,
+    }))
+    .sort((a, b) => b.overridden - a.overridden || b.total - a.total);
+
   // ---- checks per day (last 14 days) --------------------------------------------
   const days: { day: string; count: number }[] = [];
   const today = new Date();
@@ -244,6 +265,32 @@ export default async function InsightsPage() {
             </section>
           </div>
         </>
+      )}
+
+      {ruleHealthRows.length > 0 && (
+        <section className="rounded-lg border border-border bg-card p-4">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+            Guideline health
+          </h2>
+          <p className="mt-1 text-[11.5px] text-muted-foreground">
+            Rules that people override often, or keep tripping over, may be unclear or too strict.
+          </p>
+          <div className="mt-3 space-y-2">
+            {ruleHealthRows.map((r) => (
+              <div key={r.name} className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-medium text-foreground">{r.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  flagged {r.total}x · overridden {r.overridden} ({r.overrideRate}%) · fix accepted {r.accepted}
+                </span>
+                {r.unclear && (
+                  <span className="rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
+                    Possibly unclear
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       <p className="px-1 text-[11.5px] leading-relaxed text-muted-foreground">
