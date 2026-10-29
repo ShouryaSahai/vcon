@@ -4,8 +4,6 @@ import { extractText, getDocumentProxy } from "unpdf";
 import { MAX_IMAGE_BYTES } from "@/lib/checks/image-limits";
 import { createClient } from "@/lib/supabase/server";
 
-export const runtime = "nodejs";
-
 const MAX_CHARS = 20000;
 
 export async function POST(request: Request) {
