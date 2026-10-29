@@ -57,6 +57,48 @@ export type AiCaller = (input: { system: string; prompt: string }) => Promise<un
  * deterministic checks only.
  */
 export function defaultAiCaller(): AiCaller | null {
+  const nebiusKey = process.env.NEBIUS_API_KEY;
+  if (nebiusKey) {
+    const model = process.env.NEBIUS_MODEL ?? "nvidia/Nemotron-3_5-Lightning";
+    const schemaInstruction =
+      '\n\nReturn ONLY a valid JSON object with this exact shape: ' +
+      '{"findings":[{"rule_ref":"string","title":"string","explanation":"string","severity":"low"|"medium"|"high","confidence":0.9,"suggested_fix":"string","location_hint":"string"}]}';
+
+    return async ({ system, prompt }) => {
+      const response = await fetch(
+        "https://api.tokenfactory.nebius.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${nebiusKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model,
+            temperature: 0,
+            response_format: { type: "json_object" },
+            messages: [
+              { role: "system", content: system + schemaInstruction },
+              { role: "user", content: prompt },
+            ],
+          }),
+          signal: AbortSignal.timeout(45_000),
+        },
+      );
+      if (!response.ok) {
+        const body = await response.text();
+        throw new Error(`Nebius API ${response.status}: ${body.slice(0, 200)}`);
+      }
+      const data = (await response.json()) as {
+        choices?: { message?: { content?: string | null } }[];
+      };
+      const raw = data.choices?.[0]?.message?.content?.trim() ?? "";
+      if (!raw) throw new Error("Empty Nebius response");
+      const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+      return JSON.parse(cleaned);
+    };
+  }
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
   const model = process.env.GEMINI_MODEL ?? "gemini-3.5-flash";
