@@ -55,10 +55,14 @@ export default async function ItemsPage() {
   }
 
   const listItems: ListItem[] = (items ?? []).map((i) => {
-    const flagged = (countsByItem.get(i.id) ?? { high: 0, medium: 0, low: 0 }).high > 0;
+    const counts = countsByItem.get(i.id) ?? { high: 0, medium: 0, low: 0 };
+    const flagged = counts.high > 0;
+    const rawText = (i.text_content ?? "").trim();
+    const wordCount = rawText ? rawText.split(/\s+/).length : 0;
+    const charCount = rawText.length;
     const snippet =
-      i.source_kind === "text"
-        ? (i.text_content ?? "").slice(0, 110)
+      i.source_kind === "text" || i.source_kind === "docx"
+        ? rawText.slice(0, 120) || "Document upload — empty text"
         : i.alt_text
           ? `Alt text: ${i.alt_text.slice(0, 100)}`
           : "Image upload — no alt text yet";
@@ -70,26 +74,44 @@ export default async function ItemsPage() {
       created_at: i.created_at,
       snippet,
       flagged,
-      counts: countsByItem.get(i.id) ?? { high: 0, medium: 0, low: 0 },
+      counts,
+      wordCount,
+      charCount,
     };
   });
 
   return (
-    <div className="mx-auto max-w-[1120px] space-y-5 pb-12">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="mx-auto max-w-[1160px] space-y-5 pb-12">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
         <div>
-          <h1 className="text-[19px] font-semibold tracking-tight">Content items</h1>
-          <p className="mt-1 text-[12.5px] text-muted-foreground">
-            Everything this workspace has checked against the published kit.
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              GOVERNANCE QUEUE
+            </span>
+            <span className="rounded border border-border bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-medium text-foreground">
+              {kitLabel}
+            </span>
+          </div>
+          <h1 className="mt-1 text-[20px] font-semibold tracking-tight">Content items</h1>
+          <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+            Every asset evaluated against the active brand kit — deterministic + AI compliance log.
           </p>
         </div>
-        <Link
-          href="/upload"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-[12.5px] font-semibold text-primary-foreground shadow-sm shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20 active:translate-y-px"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          New check
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/insights"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 font-mono text-[11.5px] font-medium text-foreground transition-colors hover:bg-secondary"
+          >
+            Insights
+          </Link>
+          <Link
+            href="/upload"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-[12.5px] font-semibold text-primary-foreground shadow-sm shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20 active:translate-y-px"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New check
+          </Link>
+        </div>
       </div>
 
       <ItemsBrowser items={listItems} kitLabel={kitLabel} />
