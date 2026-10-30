@@ -114,9 +114,19 @@ describe("runAiChecks", () => {
   });
 
   it("does nothing without a caller or credentials", async () => {
-    const r = await runAiChecks([claimRule], item);
-    expect(r.seeds).toHaveLength(0);
-    expect(r.status).toBe("ran");
+    const keys = ["GEMINI_API_KEY", "NVIDIA_API_KEY", "NEBIUS_API_KEY"] as const;
+    const saved = keys.map((k) => [k, process.env[k]] as const);
+    for (const k of keys) delete process.env[k];
+    try {
+      const r = await runAiChecks([claimRule], item);
+      expect(r.seeds).toHaveLength(0);
+      expect(r.status).toBe("ran");
+    } finally {
+      for (const [k, v] of saved) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    }
   });
 
   it("passes all kit rules and the content in the prompt", async () => {

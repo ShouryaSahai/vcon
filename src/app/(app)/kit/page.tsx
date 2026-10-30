@@ -14,6 +14,7 @@ import type { KitRule } from "@/lib/db-types";
 import { createClient } from "@/lib/supabase/server";
 import { RULE_TYPES, RULE_TYPE_LABELS } from "@/lib/types";
 
+import { PaletteContrast } from "@/components/palette-contrast";
 import { createKit } from "./actions";
 import { KitAdmin } from "./rule-forms";
 
@@ -105,6 +106,8 @@ export default async function KitPage() {
       ) : (
         <ReadOnlyRules rules={rules ?? []} />
       )}
+
+      <PaletteContrast rules={rules ?? []} />
     </div>
   );
 }

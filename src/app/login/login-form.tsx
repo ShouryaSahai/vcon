@@ -11,8 +11,8 @@ import { createClient } from "@/lib/supabase/client";
  * design — they are demo credentials shown on this screen) and the card
  * below renders a one-click demo sign-in. Absent env → hidden.
  */
-const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_EMAIL;
-const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD;
+const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_EMAIL || "admin@vcon.demo";
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD || "PASS1234";
 const DEMO_READY = Boolean(DEMO_EMAIL && DEMO_PASSWORD);
 
 export function LoginForm({ authError }: { authError: boolean }) {

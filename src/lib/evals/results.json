@@ -1,19 +1,19 @@
 {
   "meta": {
-    "when": "2026-10-25T23:52:57.313Z",
-    "model": "(deterministic only)",
-    "aiEnabled": false,
-    "cases": 20
+    "when": "2026-10-30T12:05:39.115Z",
+    "model": "gemini-3.5-flash-lite",
+    "aiEnabled": true,
+    "cases": 32
   },
   "totals": {
-    "pass": 20,
+    "pass": 32,
     "fail": 0,
     "detectionRate": 1,
     "falseFlagRate": 0,
     "citationRate": 1,
     "avgLatencyMs": {
       "deterministic": 0,
-      "ai": 0
+      "ai": 1303
     }
   },
   "cases": [
@@ -425,6 +425,267 @@
       "extras": [],
       "findings": [],
       "latencyMs": 0
+    },
+    {
+      "id": "A01",
+      "family": "ai",
+      "title": "“100% natural” claim",
+      "notes": "E2 seeded error — explicitly disallowed",
+      "ok": true,
+      "expected": [
+        "Approved claims (C-12)"
+      ],
+      "flagged": [
+        "Approved claims (C-12)"
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Approved claims (C-12)",
+          "severity": "high",
+          "confidence": 1,
+          "needsHuman": false,
+          "routedTo": "reviewer"
+        }
+      ],
+      "latencyMs": 1843,
+      "degraded": false
+    },
+    {
+      "id": "A02",
+      "family": "ai",
+      "title": "“100% organic” claim",
+      "notes": "explicitly disallowed variant",
+      "ok": true,
+      "expected": [
+        "Approved claims (C-12)"
+      ],
+      "flagged": [
+        "Approved claims (C-12)"
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Approved claims (C-12)",
+          "severity": "high",
+          "confidence": 1,
+          "needsHuman": false,
+          "routedTo": "reviewer"
+        }
+      ],
+      "latencyMs": 1210,
+      "degraded": false
+    },
+    {
+      "id": "A03",
+      "family": "ai",
+      "title": "“cures acne” claim",
+      "notes": "medical-style disallowed claim",
+      "ok": true,
+      "expected": [
+        "Approved claims (C-12)"
+      ],
+      "flagged": [
+        "Approved claims (C-12)"
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Approved claims (C-12)",
+          "severity": "high",
+          "confidence": 1,
+          "needsHuman": false,
+          "routedTo": "reviewer"
+        }
+      ],
+      "latencyMs": 1227,
+      "degraded": false
+    },
+    {
+      "id": "A04",
+      "family": "ai",
+      "title": "Approved claim phrasing",
+      "notes": "must NOT be flagged",
+      "ok": true,
+      "expected": [],
+      "flagged": [],
+      "missing": [],
+      "extras": [],
+      "findings": [],
+      "latencyMs": 992,
+      "degraded": false
+    },
+    {
+      "id": "A05",
+      "family": "ai",
+      "title": "Second approved phrasing",
+      "notes": "“dermatologist tested” is allowed",
+      "ok": true,
+      "expected": [],
+      "flagged": [],
+      "missing": [],
+      "extras": [],
+      "findings": [],
+      "latencyMs": 1217,
+      "degraded": false
+    },
+    {
+      "id": "A06",
+      "family": "ai",
+      "title": "Hype + ALL CAPS",
+      "notes": "E6 seeded error",
+      "ok": true,
+      "expected": [
+        "Voice: warm, plain-spoken"
+      ],
+      "flagged": [
+        "Voice: warm, plain-spoken"
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Voice: warm, plain-spoken",
+          "severity": "high",
+          "confidence": 1,
+          "needsHuman": false,
+          "routedTo": "creator"
+        }
+      ],
+      "latencyMs": 1371,
+      "degraded": false
+    },
+    {
+      "id": "A07",
+      "family": "ai",
+      "title": "Fear-based urgency",
+      "notes": "avoid-list tone violation",
+      "ok": true,
+      "expected": [
+        "Voice: warm, plain-spoken"
+      ],
+      "flagged": [
+        "Voice: warm, plain-spoken"
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Voice: warm, plain-spoken",
+          "severity": "high",
+          "confidence": 1,
+          "needsHuman": false,
+          "routedTo": "creator"
+        }
+      ],
+      "latencyMs": 1498,
+      "degraded": false
+    },
+    {
+      "id": "A08",
+      "family": "ai",
+      "title": "Warm, plain-spoken caption",
+      "notes": "negative control for tone",
+      "ok": true,
+      "expected": [],
+      "flagged": [],
+      "missing": [],
+      "extras": [],
+      "findings": [],
+      "latencyMs": 940,
+      "degraded": false
+    },
+    {
+      "id": "A09",
+      "family": "ai",
+      "title": "“Glow Naturals” spelled apart",
+      "notes": "E7 seeded error",
+      "ok": true,
+      "expected": [
+        "Terminology: brand name"
+      ],
+      "flagged": [
+        "Terminology: brand name"
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Terminology: brand name",
+          "severity": "medium",
+          "confidence": 1,
+          "needsHuman": false,
+          "routedTo": "creator"
+        }
+      ],
+      "latencyMs": 1463,
+      "degraded": false
+    },
+    {
+      "id": "A10",
+      "family": "ai",
+      "title": "Brand name spelled correctly",
+      "notes": "negative control for terminology",
+      "ok": true,
+      "expected": [],
+      "flagged": [],
+      "missing": [],
+      "extras": [],
+      "findings": [],
+      "latencyMs": 676,
+      "degraded": false
+    },
+    {
+      "id": "A11",
+      "family": "ai",
+      "title": "Claim + tone together",
+      "notes": "two AI rules in one caption",
+      "ok": true,
+      "expected": [
+        "Approved claims (C-12)",
+        "Voice: warm, plain-spoken"
+      ],
+      "flagged": [
+        "Approved claims (C-12)",
+        "Voice: warm, plain-spoken"
+      ],
+      "missing": [],
+      "extras": [],
+      "findings": [
+        {
+          "rule": "Approved claims (C-12)",
+          "severity": "high",
+          "confidence": 1,
+          "needsHuman": false,
+          "routedTo": "reviewer"
+        },
+        {
+          "rule": "Voice: warm, plain-spoken",
+          "severity": "medium",
+          "confidence": 1,
+          "needsHuman": false,
+          "routedTo": "creator"
+        }
+      ],
+      "latencyMs": 1849,
+      "degraded": false
+    },
+    {
+      "id": "A12",
+      "family": "ai",
+      "title": "Clean caption for all AI rules",
+      "notes": "full AI negative control",
+      "ok": true,
+      "expected": [],
+      "flagged": [],
+      "missing": [],
+      "extras": [],
+      "findings": [],
+      "latencyMs": 1355,
+      "degraded": false
     }
   ]
 }

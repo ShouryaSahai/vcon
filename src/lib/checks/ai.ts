@@ -47,19 +47,69 @@ const RESPONSE_SCHEMA = {
 
 export type AiCaller = (input: { system: string; prompt: string }) => Promise<unknown>;
 
-/**
- * The production caller: Gemini REST with structured output, thinking
- * disabled (3.x models otherwise think for minutes) and a hard 45s timeout
- * so a slow model can never hang a check. Raw REST because the SDK's
- * structured-output path misbehaves with current Gemini 3.x models; the
- * AiCaller interface keeps the provider swappable (OpenRouter next).
- * Returns null when no credentials are configured — the pipeline then runs
- * deterministic checks only.
- */
-export function defaultAiCaller(): AiCaller | null {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-  const model = process.env.GEMINI_MODEL ?? "gemini-3.5-flash";
+function cleanJsonText(raw: string): string {
+  const trimmed = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  const firstBrace = trimmed.indexOf("{");
+  const lastBrace = trimmed.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    return trimmed.slice(firstBrace, lastBrace + 1);
+  }
+  return trimmed;
+}
+
+function buildNvidiaCaller(rawKey: string): AiCaller {
+  const apiKey = rawKey.trim();
+  const isNebius = Boolean(process.env.NEBIUS_API_KEY && !process.env.NVIDIA_API_KEY);
+  const endpoint = isNebius
+    ? "https://api.tokenfactory.nebius.com/v1/chat/completions"
+    : "https://integrate.api.nvidia.com/v1/chat/completions";
+  const model =
+    process.env.NVIDIA_MODEL ??
+    process.env.NEBIUS_MODEL ??
+    "meta/llama-3.3-70b-instruct";
+
+  const schemaInstruction =
+    '\n\nReturn ONLY a valid JSON object with this exact shape: ' +
+    '{"findings":[{"rule_ref":"string","title":"string","explanation":"string","severity":"low","confidence":0.9,"suggested_fix":"string","location_hint":"string"}]}. ' +
+    'Note: severity must be one of "low", "medium", or "high". If no rule is violated, return {"findings":[]}.';
+
+  return async ({ system, prompt }) => {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0,
+        max_tokens: 1024,
+        messages: [
+          { role: "system", content: system + schemaInstruction },
+          { role: "user", content: prompt },
+        ],
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`NVIDIA API ${response.status}: ${body.slice(0, 200)}`);
+    }
+
+    const data = (await response.json()) as {
+      choices?: { message?: { content?: string | null } }[];
+    };
+    const raw = data.choices?.[0]?.message?.content ?? "";
+    if (!raw.trim()) throw new Error("Empty NVIDIA response");
+    return JSON.parse(cleanJsonText(raw));
+  };
+}
+
+function buildGeminiCaller(rawKey: string): AiCaller {
+  const apiKey = rawKey.trim();
+  const model = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+
   return async ({ system, prompt }) => {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
@@ -73,22 +123,61 @@ export function defaultAiCaller(): AiCaller | null {
             temperature: 0,
             responseMimeType: "application/json",
             responseSchema: RESPONSE_SCHEMA,
-            thinkingConfig: { thinkingBudget: 0 },
           },
         }),
-        signal: AbortSignal.timeout(45_000),
+        signal: AbortSignal.timeout(15_000),
       },
     );
+
     if (!response.ok) {
       const body = await response.text();
       throw new Error(`Gemini API ${response.status}: ${body.slice(0, 200)}`);
     }
+
     const data = (await response.json()) as {
       candidates?: { content?: { parts?: { text?: string }[] } }[];
     };
     const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-    if (!text) throw new Error("Empty Gemini response");
-    return JSON.parse(text);
+    if (!text.trim()) throw new Error("Empty Gemini response");
+    return JSON.parse(cleanJsonText(text));
+  };
+}
+
+/**
+ * Provider chain:
+ * 1. Tries NVIDIA first (if NVIDIA_API_KEY or NEBIUS_API_KEY is configured).
+ * 2. Automatically falls back to Gemini (if GEMINI_API_KEY is configured) when NVIDIA fails.
+ */
+export function defaultAiCaller(): AiCaller | null {
+  const providers: { name: string; call: AiCaller }[] = [];
+
+  const nvidiaKey = process.env.NVIDIA_API_KEY ?? process.env.NEBIUS_API_KEY;
+  if (nvidiaKey?.trim()) {
+    providers.push({ name: "nvidia", call: buildNvidiaCaller(nvidiaKey) });
+  }
+
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey?.trim()) {
+    providers.push({ name: "gemini", call: buildGeminiCaller(geminiKey) });
+  }
+
+  if (providers.length === 0) return null;
+
+  return async (input) => {
+    let lastError: unknown = null;
+    for (const provider of providers) {
+      try {
+        const rawResult = await provider.call(input);
+        const validated = aiOutputSchema.safeParse(rawResult);
+        if (validated.success) {
+          return validated.data;
+        }
+        lastError = new Error(`${provider.name} returned invalid schema`);
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError ?? new Error("All AI providers failed");
   };
 }
 
@@ -108,15 +197,6 @@ function needsHumanFinding(title: string, explanation: string): FindingSeed {
   };
 }
 
-/**
- * Grounded AI checks. The model only sees this kit's rules and must cite one
- * by its exact ref; citation is ENFORCED below (code, not prompt):
- *   - cited rule exists  -> finding keeps the citation;
- *   - cited rule missing -> downgraded to needs_human with no citation, so a
- *     human confirms before it counts. No source, no flag.
- * Malformed output is retried once; a second failure becomes one needs_human
- * finding rather than a guess.
- */
 export async function runAiChecks(
   aiRules: KitRule[],
   item: { context_type: string; text_content: string | null },
@@ -138,6 +218,8 @@ export async function runAiChecks(
   const system =
     "You are a brand-governance checker for pre-publication content. " +
     "Judge the content ONLY against the provided brand rules. " +
+    "Check every rule independently: flag unapproved claims under approved_claim rules, " +
+    "and flag ALL CAPS, hype, pushy urgency, or fear-based language under tone_guideline rules. " +
     "Every finding MUST cite a rule by its exact REF string. " +
     "If no rule is violated, return an empty findings array. Never invent rules. " +
     "Set confidence below 0.6 whenever you are unsure — such findings are routed to human review. " +
@@ -169,7 +251,6 @@ export async function runAiChecks(
       lastError = error instanceof Error ? error.message : String(error);
     }
     if (attempt === 1 && !validated) {
-      // Brief backoff before the retry — free-tier 503 spikes are usually short.
       await new Promise((resolve) => setTimeout(resolve, 1500));
     }
   }
@@ -209,7 +290,6 @@ export async function runAiChecks(
         status: "open",
       });
     } else {
-      // No source, no flag: keep it visible but demote to human review.
       seeds.push({
         kit_rule_id: null,
         source: "ai",
