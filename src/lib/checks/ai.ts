@@ -14,7 +14,7 @@ const aiFindingSchema = z.object({
   severity: z.enum(["low", "medium", "high"]),
   confidence: z.number().min(0).max(1),
   suggested_fix: z.string().min(1),
-  location_hint: z.string().nullish(),
+  location_hint: z.string().optional(),
 });
 
 const aiOutputSchema = z.object({
@@ -47,22 +47,31 @@ const RESPONSE_SCHEMA = {
 
 export type AiCaller = (input: { system: string; prompt: string }) => Promise<unknown>;
 
-function createNvidiaOrNebiusCaller(apiKey: string): AiCaller {
-  const isNvidiaDirect = apiKey.startsWith("nvapi-") || Boolean(process.env.NVIDIA_API_KEY);
-  const endpoint = isNvidiaDirect
-    ? "https://integrate.api.nvidia.com/v1/chat/completions"
-    : "https://api.tokenfactory.nebius.com/v1/chat/completions";
+function cleanJsonText(raw: string): string {
+  const trimmed = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  const firstBrace = trimmed.indexOf("{");
+  const lastBrace = trimmed.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    return trimmed.slice(firstBrace, lastBrace + 1);
+  }
+  return trimmed;
+}
+
+function buildNvidiaCaller(rawKey: string): AiCaller {
+  const apiKey = rawKey.trim();
+  const isNebius = Boolean(process.env.NEBIUS_API_KEY && !process.env.NVIDIA_API_KEY);
+  const endpoint = isNebius
+    ? "https://api.tokenfactory.nebius.com/v1/chat/completions"
+    : "https://integrate.api.nvidia.com/v1/chat/completions";
   const model =
     process.env.NVIDIA_MODEL ??
     process.env.NEBIUS_MODEL ??
-    (isNvidiaDirect
-      ? "meta/llama-3.3-70b-instruct"
-      : "nvidia/Nemotron-3_5-Lightning");
+    "meta/llama-3.3-70b-instruct";
 
   const schemaInstruction =
-    "\n\nReturn ONLY a valid JSON object with this exact shape: " +
-    '{"findings":[{"rule_ref":"exact REF string from BRAND RULES","title":"string","explanation":"string","severity":"low"|"medium"|"high","confidence":0.9,"suggested_fix":"string","location_hint":"string"}]}. ' +
-    'If no rules are violated, return {"findings":[]}.';
+    '\n\nReturn ONLY a valid JSON object with this exact shape: ' +
+    '{"findings":[{"rule_ref":"string","title":"string","explanation":"string","severity":"low","confidence":0.9,"suggested_fix":"string","location_hint":"string"}]}. ' +
+    'Note: severity must be one of "low", "medium", or "high". If no rule is violated, return {"findings":[]}.';
 
   return async ({ system, prompt }) => {
     const response = await fetch(endpoint, {
@@ -80,26 +89,27 @@ function createNvidiaOrNebiusCaller(apiKey: string): AiCaller {
           { role: "user", content: prompt },
         ],
       }),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(15_000),
     });
+
     if (!response.ok) {
       const body = await response.text();
-      throw new Error(`NVIDIA/Nebius API ${response.status}: ${body.slice(0, 200)}`);
+      throw new Error(`NVIDIA API ${response.status}: ${body.slice(0, 200)}`);
     }
+
     const data = (await response.json()) as {
       choices?: { message?: { content?: string | null } }[];
     };
-    const raw = data.choices?.[0]?.message?.content?.trim() ?? "";
-    if (!raw) throw new Error("Empty NVIDIA/Nebius response");
-    const withoutThink = raw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
-    const cleaned = withoutThink.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    return JSON.parse(jsonMatch ? jsonMatch[0] : cleaned);
+    const raw = data.choices?.[0]?.message?.content ?? "";
+    if (!raw.trim()) throw new Error("Empty NVIDIA response");
+    return JSON.parse(cleanJsonText(raw));
   };
 }
 
-function createGeminiCaller(apiKey: string): AiCaller {
-  const model = process.env.GEMINI_MODEL ?? "gemini-3.8-flash";
+function buildGeminiCaller(rawKey: string): AiCaller {
+  const apiKey = rawKey.trim();
+  const model = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+
   return async ({ system, prompt }) => {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
@@ -115,33 +125,61 @@ function createGeminiCaller(apiKey: string): AiCaller {
             responseSchema: RESPONSE_SCHEMA,
           },
         }),
-        signal: AbortSignal.timeout(20_000),
+        signal: AbortSignal.timeout(15_000),
       },
     );
+
     if (!response.ok) {
       const body = await response.text();
       throw new Error(`Gemini API ${response.status}: ${body.slice(0, 200)}`);
     }
+
     const data = (await response.json()) as {
       candidates?: { content?: { parts?: { text?: string }[] } }[];
     };
     const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-    if (!text) throw new Error("Empty Gemini response");
-    return JSON.parse(text);
+    if (!text.trim()) throw new Error("Empty Gemini response");
+    return JSON.parse(cleanJsonText(text));
   };
 }
 
+/**
+ * Provider chain:
+ * 1. Tries NVIDIA first (if NVIDIA_API_KEY or NEBIUS_API_KEY is configured).
+ * 2. Automatically falls back to Gemini (if GEMINI_API_KEY is configured) when NVIDIA fails.
+ */
 export function defaultAiCaller(): AiCaller | null {
-  const geminiKey = process.env.GEMINI_API_KEY?.trim();
-  if (geminiKey) return createGeminiCaller(geminiKey);
+  const providers: { name: string; call: AiCaller }[] = [];
 
-  const nvidiaOrNebiusKey =
-    process.env.NVIDIA_API_KEY?.trim() || process.env.NEBIUS_API_KEY?.trim();
-  if (nvidiaOrNebiusKey) return createNvidiaOrNebiusCaller(nvidiaOrNebiusKey);
+  const nvidiaKey = process.env.NVIDIA_API_KEY ?? process.env.NEBIUS_API_KEY;
+  if (nvidiaKey?.trim()) {
+    providers.push({ name: "nvidia", call: buildNvidiaCaller(nvidiaKey) });
+  }
 
-  return null;
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey?.trim()) {
+    providers.push({ name: "gemini", call: buildGeminiCaller(geminiKey) });
+  }
+
+  if (providers.length === 0) return null;
+
+  return async (input) => {
+    let lastError: unknown = null;
+    for (const provider of providers) {
+      try {
+        const rawResult = await provider.call(input);
+        const validated = aiOutputSchema.safeParse(rawResult);
+        if (validated.success) {
+          return validated.data;
+        }
+        lastError = new Error(`${provider.name} returned invalid schema`);
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError ?? new Error("All AI providers failed");
+  };
 }
-
 
 function needsHumanFinding(title: string, explanation: string): FindingSeed {
   return {
@@ -180,10 +218,8 @@ export async function runAiChecks(
   const system =
     "You are a brand-governance checker for pre-publication content. " +
     "Judge the content ONLY against the provided brand rules. " +
-    "Evaluate EVERY rule independently: " +
-    "(1) For approved_claim rules, flag any unapproved product/health/ingredient claim (such as '100% natural', '100% organic', 'cures acne') unless the phrasing matches an approved claim. " +
-    "(2) For tone_guideline rules, ALWAYS flag ALL CAPS words, exclamation-heavy hype, pushy urgency, or fear-based language by citing that tone_guideline rule's exact REF string. " +
-    "(3) For custom rules, check exact brand spelling and formatting requirements. " +
+    "Check every rule independently: flag unapproved claims under approved_claim rules, " +
+    "and flag ALL CAPS, hype, pushy urgency, or fear-based language under tone_guideline rules. " +
     "Every finding MUST cite a rule by its exact REF string. " +
     "If no rule is violated, return an empty findings array. Never invent rules. " +
     "Set confidence below 0.6 whenever you are unsure — such findings are routed to human review. " +
@@ -196,8 +232,6 @@ export async function runAiChecks(
 
   let validated: z.infer<typeof aiOutputSchema> | null = null;
   let lastError = "";
-  const retryDelayMs = opts?.call ? 1500 : 2000;
-
   for (let attempt = 1; attempt <= 2 && !validated; attempt++) {
     try {
       const parsed = await call({
@@ -215,10 +249,9 @@ export async function runAiChecks(
       }
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error);
-      console.error("[ai-check]", lastError);
     }
     if (attempt === 1 && !validated) {
-      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
     }
   }
 

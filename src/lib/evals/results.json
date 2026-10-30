@@ -1,19 +1,19 @@
 {
   "meta": {
-    "when": "2026-10-29T10:14:20.828Z",
+    "when": "2026-10-30T12:05:39.115Z",
     "model": "gemini-3.5-flash-lite",
     "aiEnabled": true,
     "cases": 32
   },
   "totals": {
-    "pass": 31,
-    "fail": 1,
-    "detectionRate": 0.9444444444444444,
+    "pass": 32,
+    "fail": 0,
+    "detectionRate": 1,
     "falseFlagRate": 0,
-    "citationRate": 0.9565217391304348,
+    "citationRate": 1,
     "avgLatencyMs": {
       "deterministic": 0,
-      "ai": 5024
+      "ai": 1303
     }
   },
   "cases": [
@@ -40,7 +40,7 @@
           "routedTo": "creator"
         }
       ],
-      "latencyMs": 1
+      "latencyMs": 0
     },
     {
       "id": "D02",
@@ -229,7 +229,7 @@
           "routedTo": "creator"
         }
       ],
-      "latencyMs": 2
+      "latencyMs": 1
     },
     {
       "id": "D11",
@@ -449,7 +449,7 @@
           "routedTo": "reviewer"
         }
       ],
-      "latencyMs": 5154,
+      "latencyMs": 1843,
       "degraded": false
     },
     {
@@ -457,36 +457,25 @@
       "family": "ai",
       "title": "“100% organic” claim",
       "notes": "explicitly disallowed variant",
-      "ok": false,
+      "ok": true,
       "expected": [
         "Approved claims (C-12)"
       ],
       "flagged": [
-        "Voice: warm, plain-spoken"
-      ],
-      "missing": [
         "Approved claims (C-12)"
       ],
-      "extras": [
-        "Voice: warm, plain-spoken"
-      ],
+      "missing": [],
+      "extras": [],
       "findings": [
         {
-          "rule": null,
+          "rule": "Approved claims (C-12)",
           "severity": "high",
           "confidence": 1,
-          "needsHuman": true,
-          "routedTo": "reviewer"
-        },
-        {
-          "rule": "Voice: warm, plain-spoken",
-          "severity": "medium",
-          "confidence": 0.9,
           "needsHuman": false,
-          "routedTo": "creator"
+          "routedTo": "reviewer"
         }
       ],
-      "latencyMs": 4988,
+      "latencyMs": 1210,
       "degraded": false
     },
     {
@@ -512,7 +501,7 @@
           "routedTo": "reviewer"
         }
       ],
-      "latencyMs": 4975,
+      "latencyMs": 1227,
       "degraded": false
     },
     {
@@ -526,7 +515,7 @@
       "missing": [],
       "extras": [],
       "findings": [],
-      "latencyMs": 2962,
+      "latencyMs": 992,
       "degraded": false
     },
     {
@@ -540,7 +529,7 @@
       "missing": [],
       "extras": [],
       "findings": [],
-      "latencyMs": 2080,
+      "latencyMs": 1217,
       "degraded": false
     },
     {
@@ -561,19 +550,12 @@
         {
           "rule": "Voice: warm, plain-spoken",
           "severity": "high",
-          "confidence": 0.95,
-          "needsHuman": false,
-          "routedTo": "creator"
-        },
-        {
-          "rule": "Voice: warm, plain-spoken",
-          "severity": "high",
-          "confidence": 0.95,
+          "confidence": 1,
           "needsHuman": false,
           "routedTo": "creator"
         }
       ],
-      "latencyMs": 1981,
+      "latencyMs": 1371,
       "degraded": false
     },
     {
@@ -599,7 +581,7 @@
           "routedTo": "creator"
         }
       ],
-      "latencyMs": 2192,
+      "latencyMs": 1498,
       "degraded": false
     },
     {
@@ -613,7 +595,7 @@
       "missing": [],
       "extras": [],
       "findings": [],
-      "latencyMs": 11696,
+      "latencyMs": 940,
       "degraded": false
     },
     {
@@ -639,7 +621,7 @@
           "routedTo": "creator"
         }
       ],
-      "latencyMs": 4710,
+      "latencyMs": 1463,
       "degraded": false
     },
     {
@@ -653,7 +635,7 @@
       "missing": [],
       "extras": [],
       "findings": [],
-      "latencyMs": 2341,
+      "latencyMs": 676,
       "degraded": false
     },
     {
@@ -688,7 +670,7 @@
           "routedTo": "creator"
         }
       ],
-      "latencyMs": 3803,
+      "latencyMs": 1849,
       "degraded": false
     },
     {
@@ -702,7 +684,7 @@
       "missing": [],
       "extras": [],
       "findings": [],
-      "latencyMs": 13410,
+      "latencyMs": 1355,
       "degraded": false
     }
   ]
