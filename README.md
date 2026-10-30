@@ -124,3 +124,22 @@ pnpm test
 pnpm build
 git diff --check
 ```
+
+## Round 3 update
+
+**Verified status**
+
+- **Evaluation:** 32 labeled cases (20 deterministic, 12 AI), all passing in the latest recorded run on `gemini-3.5-flash-lite`. Scorecard: `/evals` (data in `src/lib/evals/results.json`); rerun with `pnpm test:evals`. AI cases call a live model, so results can vary between runs; we saw occasional single-case flakiness (timeout or a differing answer) during development, and the committed scorecard is the latest recorded run.
+- **AI providers:** Gemini is the working provider. A second provider path (NVIDIA) exists in `src/lib/checks/ai.ts`, but its default model (`meta/llama-3.3-70b-instruct`) currently returns HTTP 410 (retired upstream), so it is not used. Fixing it is an open issue for contributors.
+- **PDF upload:** text-based PDFs can be uploaded on `/upload`; the text is extracted server-side (`/api/extract-pdf`) and the same deterministic and AI checks run as for pasted text. Tested end to end on a 4-page PDF.
+- **Color and accessibility:** palette matching uses CIEDE2000 (`src/lib/checks/color.ts`); `/kit` shows a WCAG contrast report for every pair of approved palette colors (`src/lib/checks/contrast.ts`, unit-tested).
+- **Insights:** `/insights` shows findings by rule plus a guideline-health view (flag counts, override rates, a "Possibly unclear" label for rules people override often).
+- **Judge demo:** `/login` has a one-click "Try the demo" button.
+
+**Known limitations**
+
+- Scanned (image-only) PDFs are not supported; DOCX upload is not supported.
+- Findings from PDFs do not yet point to a page or section.
+- The contrast check is a kit-level report, not a per-item finding.
+- No readability score yet; vague rules are surfaced through override rates, not an AI measurability check.
+- NVIDIA provider path needs a current default model (see above).
