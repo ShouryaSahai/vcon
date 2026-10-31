@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/client";
  * below renders a one-click demo sign-in. Absent env → hidden.
  */
 const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_EMAIL || "admin@vcon.demo";
-const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD || "PASS1234";
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD || "Password123!";
 const DEMO_READY = Boolean(DEMO_EMAIL && DEMO_PASSWORD);
 
 export function LoginForm({ authError }: { authError: boolean }) {
@@ -35,7 +35,7 @@ export function LoginForm({ authError }: { authError: boolean }) {
 
     try {
       if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: password.trim() });
         if (error) {
           setError(error.message);
           return;
@@ -183,7 +183,7 @@ function DemoSignIn({ email, password }: { email: string; password: string }) {
   async function demoSignIn() {
     setBusy(true);
     setError(null);
-    const { error } = await createClient().auth.signInWithPassword({ email, password });
+    const { error } = await createClient().auth.signInWithPassword({ email: email.trim(), password: password.trim() });
     if (error) {
       setError(error.message);
       setBusy(false);
