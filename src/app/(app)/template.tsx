@@ -6,7 +6,7 @@ export default function AppPageTemplate({
   children: React.ReactNode;
 }) {
   return (
-    <div>
+    <div className="vcon-page-enter">
       <Suspense fallback={null}>{children}</Suspense>
     </div>
   );
