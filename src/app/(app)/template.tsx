@@ -1,11 +1,13 @@
-"use client";
-
-import React from "react";
+import React, { Suspense } from "react";
 
 export default function AppPageTemplate({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <div className="vcon-page-enter">{children}</div>;
+  return (
+    <div>
+      <Suspense fallback={null}>{children}</Suspense>
+    </div>
+  );
 }
