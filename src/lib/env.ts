@@ -1,4 +1,7 @@
-export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+export const supabaseUrl =
+  "https://nzgxmyeabmxhmyinqpzd.supabase.co";
+
+export const supabaseAnonKey =
+  "sb_publishable_XM1czCU2zh-_Zx3eAJFn9A_t7Ufsr8x";
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
