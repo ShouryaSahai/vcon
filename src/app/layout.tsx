@@ -1,29 +1,45 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import {
+  Plus_Jakarta_Sans,
+  JetBrains_Mono,
+  Fraunces,
+} from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
+const jakartaSans = Plus_Jakarta_Sans({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
+const jetbrainsMono = JetBrains_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
+
+const frauncesDisplay = Fraunces({
+  variable: "--font-display",
+  subsets: ["latin"],
+  axes: ["SOFT", "WONK", "opsz"],
 });
 
 export const metadata: Metadata = {
-  title: "Vcon — Brand governance before publication",
+  title: "Vcon — Autonomous Brand & Policy Governance",
   description:
-    "Vcon checks content against a company's approved brand kit before it goes public. Every flag explained, cited, and decided by a human.",
+    "Deterministic + LLM compliance gates before publication. Every finding cited, verified, and audited.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${jakartaSans.variable} ${jetbrainsMono.variable} ${frauncesDisplay.variable} h-full antialiased`}
     >
       <head>
         <script

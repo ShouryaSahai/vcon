@@ -9,7 +9,76 @@ import { AppNav } from "@/components/app-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { RefreshButton } from "@/components/refresh-button";
 import { ROLE_LABELS } from "@/lib/types";
-import evalResults from "@/lib/evals/results.json";
+
+function VconNBadge({
+  idPrefix,
+  size = 24,
+}: {
+  idPrefix: string;
+  size?: number;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 180 180"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="shrink-0 rounded-full ring-1 ring-white/15"
+      aria-hidden="true"
+    >
+      <mask
+        id={`${idPrefix}-mask`}
+        style={{ maskType: "alpha" }}
+        maskUnits="userSpaceOnUse"
+        x="0"
+        y="0"
+        width="180"
+        height="180"
+      >
+        <circle cx="90" cy="90" r="90" fill="black" />
+      </mask>
+      <g mask={`url(#${idPrefix}-mask)`}>
+        <circle cx="90" cy="90" r="90" fill="black" />
+        <path
+          d="M149.508 157.52L69.142 54H54V125.97H66.1136V69.3836L139.999 164.845C143.333 162.614 146.509 160.165 149.508 157.52Z"
+          fill={`url(#${idPrefix}-grad1)`}
+        />
+        <rect
+          x="115"
+          y="54"
+          width="12"
+          height="72"
+          fill={`url(#${idPrefix}-grad2)`}
+        />
+      </g>
+      <defs>
+        <linearGradient
+          id={`${idPrefix}-grad1`}
+          x1="109"
+          y1="116.5"
+          x2="144.5"
+          y2="160.5"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient
+          id={`${idPrefix}-grad2`}
+          x1="121"
+          y1="54"
+          x2="120.799"
+          y2="106.875"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
 
 function ChipSkeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-lg bg-white/5 ${className}`} />;
@@ -19,7 +88,7 @@ async function ReviewBadge() {
   const count = await getReviewCount();
   if (count <= 0) return null;
   return (
-    <span className="ml-auto rounded-full bg-primary px-1.5 font-mono text-[10px] font-semibold leading-5 text-sidebar-primary-foreground">
+    <span className="ml-auto rounded-full bg-white/15 px-1.5 font-mono text-[10px] font-semibold leading-5 text-white">
       {count}
     </span>
   );
@@ -42,47 +111,17 @@ async function WorkspaceChip() {
   }
 
   return (
-    <div className="mb-2 flex items-center gap-2.5 rounded-lg border border-sidebar-border bg-white/[0.02] px-2.5 py-2">
-      <span className="grid h-5 w-5 shrink-0 place-items-center rounded bg-primary font-mono text-[10px] font-bold text-sidebar-primary-foreground">
-        {(workspaceName ?? "W")[0]}
-      </span>
+    <div className="mb-2 flex items-center gap-2.5 rounded-lg border border-sidebar-border bg-white/[0.03] px-2.5 py-2">
+      <VconNBadge idPrefix="vcon-ws-chip" size={20} />
       <span className="min-w-0 leading-tight">
         <span className="block truncate text-xs font-semibold text-sidebar-accent-foreground">
-          {workspaceName ?? "No workspace"}
+          {workspaceName ?? "Vcon Core"}
         </span>
         <span className="block truncate font-mono text-[10px] text-sidebar-foreground/70">
-          {kitLabel ?? "no kit yet"}
+          {kitLabel ?? "Active Policy Kit"}
         </span>
       </span>
     </div>
-  );
-}
-
-function EvalTelemetryCard() {
-  const pass = evalResults?.totals?.pass ?? 32;
-  const total = evalResults?.meta?.cases ?? 32;
-  const model = evalResults?.meta?.model ?? "gemini-3.5-flash-lite";
-  const pct = total > 0 ? Math.round((pass / total) * 100) : 100;
-
-  return (
-    <Link
-      href="/evals"
-      className="mb-2 block rounded-lg border border-sidebar-border bg-white/[0.03] px-2.5 py-2 transition-colors hover:border-primary/50 hover:bg-white/[0.06]"
-    >
-      <div className="flex items-center justify-between gap-1">
-        <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/60">
-          Eval Harness
-        </span>
-        <span className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/15 px-1.5 py-0.2 font-mono text-[9.5px] font-semibold text-emerald-300">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-          {pass}/{total} ({pct}%)
-        </span>
-      </div>
-      <div className="mt-1 flex items-center justify-between font-mono text-[10px] text-sidebar-foreground/75">
-        <span className="truncate">{model}</span>
-        <span className="text-sidebar-foreground/50">→</span>
-      </div>
-    </Link>
   );
 }
 
@@ -128,23 +167,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const pass = evalResults?.totals?.pass ?? 32;
-  const total = evalResults?.meta?.cases ?? 32;
-  const model = evalResults?.meta?.model ?? "gemini-3.5-flash-lite";
-
   return (
-    <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[232px_1fr]">
+    <div className="grid min-h-screen grid-cols-1 bg-background text-foreground lg:grid-cols-[232px_1fr]">
       <aside className="sticky top-0 z-20 flex flex-row items-center gap-2 overflow-x-auto border-b border-sidebar-border px-3 py-2 text-sidebar-foreground [background:var(--sidebar-gradient)] lg:h-screen lg:flex-col lg:items-stretch lg:overflow-x-visible lg:border-b-0 lg:border-r lg:px-2.5 lg:py-3.5">
         <Link
           href="/items"
-          className="flex shrink-0 items-center gap-2 px-1 py-1 lg:mb-4 lg:px-2.5 lg:py-1.5"
+          className="flex shrink-0 items-center gap-2.5 px-1 py-1 lg:mb-4 lg:px-2.5 lg:py-1.5"
         >
-          <span className="grid h-[22px] w-[22px] place-items-center rounded bg-linear-to-br from-primary to-[#8B8AF5] font-mono text-[12px] font-bold text-sidebar-primary-foreground shadow-md shadow-primary/40">
-            V
+          <VconNBadge idPrefix="vcon-top-nav" size={24} />
+          <span className="text-sm font-semibold tracking-tight text-white">
+            Vcon
           </span>
-          <span className="text-sm font-semibold tracking-tight text-white">Vcon</span>
           <span className="ml-auto hidden rounded border border-white/15 bg-white/5 px-1.5 py-0.5 font-mono text-[9.5px] font-medium text-sidebar-foreground/80 lg:inline-block">
-            R3 · GOV
+            CORE
           </span>
         </Link>
 
@@ -158,11 +193,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="hidden flex-1 lg:block" />
 
         <div className="hidden px-2.5 pb-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/50 lg:block">
-          Telemetry & Context
+          Environment
         </div>
         <div className="hidden lg:block">
-          <EvalTelemetryCard />
-          <Suspense fallback={<ChipSkeleton className="mb-2 h-[52px] border border-sidebar-border" />}>
+          <Suspense fallback={<ChipSkeleton className="mb-2 h-[46px] border border-sidebar-border" />}>
             <WorkspaceChip />
           </Suspense>
         </div>
@@ -192,37 +226,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-col">
-        {/* PostHog-style high-density telemetry status bar */}
-        <header className="hidden items-center justify-between border-b border-border bg-card/60 px-7 py-2 backdrop-blur-xs lg:flex">
-          <div className="flex items-center gap-2.5 font-mono text-[11px] text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5 rounded border border-border bg-secondary/70 px-2 py-0.5 text-foreground">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              ENGINE: {model}
-            </span>
-            <span className="rounded border border-border bg-secondary/40 px-2 py-0.5">
-              COLOR: CIEDE2000 (ΔE₀₀) + WCAG AA
-            </span>
-            <span className="rounded border border-border bg-secondary/40 px-2 py-0.5">
-              INGEST: TEXT · PDF · IMAGE
-            </span>
-          </div>
-          <div className="flex items-center gap-2 font-mono text-[11px]">
-            <Link
-              href="/evals"
-              className="inline-flex items-center gap-1.5 rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-semibold text-emerald-700 transition-colors hover:bg-emerald-500/15 dark:text-emerald-300"
-            >
-              EVALS: {pass}/{total} PASS
-            </Link>
-            <Link
-              href="/insights"
-              className="rounded border border-border bg-secondary/60 px-2 py-0.5 text-foreground transition-colors hover:bg-secondary"
-            >
-              INSIGHTS →
-            </Link>
-          </div>
-        </header>
-
-        <main className="min-w-0 flex-1 px-4 py-4 lg:px-7 lg:py-6">{children}</main>
+        <main className="min-w-0 flex-1 px-4 py-5 lg:px-8 lg:py-7">{children}</main>
       </div>
     </div>
   );

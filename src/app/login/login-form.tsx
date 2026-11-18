@@ -1,214 +1,341 @@
 "use client";
 
+import React, { useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-
 import { createClient } from "@/lib/supabase/client";
 
-/**
- * Optional judge/demo fast path. Set NEXT_PUBLIC_DEMO_EMAIL +
- * NEXT_PUBLIC_DEMO_PASSWORD in the deployment env (values are public by
- * design — they are demo credentials shown on this screen) and the card
- * below renders a one-click demo sign-in. Absent env → hidden.
- */
-const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_EMAIL || "admin@vcon.demo";
-const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD || "Password123!";
-const DEMO_READY = Boolean(DEMO_EMAIL && DEMO_PASSWORD);
+interface LoginFormProps {
+  searchParams: Promise<{ error?: string }>;
+}
 
-export function LoginForm({ authError }: { authError: boolean }) {
-  const router = useRouter();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    setError(null);
-    setNotice(null);
-    setBusy(true);
-
-    const supabase = createClient();
-
-    try {
-      if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: password.trim() });
-        if (error) {
-          setError(error.message);
-          return;
-        }
-        router.replace("/");
-        router.refresh();
-      } else {
-        // SECURITY: no role is sent in user metadata. Signup always lands as
-        // role 'creator' with no workspace; elevation happens only through
-        // trusted operations (supabase/bootstrap.sql or admin actions in-app).
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { full_name: fullName } },
-        });
-        if (error) {
-          setError(error.message);
-          return;
-        }
-        if (data.session) {
-          router.replace("/");
-          router.refresh();
-        } else {
-          setNotice(
-            "Account created. Check your inbox to confirm your email, then sign in. " +
-              "(For the demo you can disable email confirmation: Supabase → Authentication → Providers → Email.)",
-          );
-        }
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
+function VconBrandMark() {
   return (
-    <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-      {authError && (
-        <p className="mb-4 rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          Sign-in link was invalid or expired. Please sign in again.
-        </p>
-      )}
-
-      <div className="mb-4 grid grid-cols-2 gap-1 rounded-md bg-secondary p-1 text-sm font-medium">
-        <button
-          type="button"
-          onClick={() => setMode("signin")}
-          className={`rounded px-3 py-1.5 ${mode === "signin" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+    <div className="inline-flex items-center gap-3 select-none">
+      <svg
+        viewBox="0 0 180 180"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-9 w-9 shrink-0 rounded-full ring-1 ring-black/10 dark:ring-white/15"
+        aria-hidden="true"
+      >
+        <mask
+          id="vcon-n-login"
+          style={{ maskType: "alpha" }}
+          maskUnits="userSpaceOnUse"
+          x="0"
+          y="0"
+          width="180"
+          height="180"
         >
-          Sign in
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("signup")}
-          className={`rounded px-3 py-1.5 ${mode === "signup" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
-        >
-          Sign up
-        </button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-3">
-        {mode === "signup" && (
-          <label className="block">
-            <span className="text-sm font-medium text-foreground/85">Full name</span>
-            <input
-              type="text"
-              value={fullName}
-              onChange={(event) => setFullName(event.target.value)}
-              className="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm focus:border-ring focus:outline-none"
-              placeholder="Your name"
-            />
-          </label>
-        )}
-
-        <label className="block">
-          <span className="text-sm font-medium text-foreground/85">Email</span>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm focus:border-ring focus:outline-none"
-            placeholder="you@company.com"
+          <circle cx="90" cy="90" r="90" fill="black" />
+        </mask>
+        <g mask="url(#vcon-n-login)">
+          <circle cx="90" cy="90" r="90" fill="black" />
+          <path
+            d="M149.508 157.52L69.142 54H54V125.97H66.1136V69.3836L139.999 164.845C143.333 162.614 146.509 160.165 149.508 157.52Z"
+            fill="url(#vcon_n_grad1_login)"
           />
-        </label>
-
-        <label className="block">
-          <span className="text-sm font-medium text-foreground/85">Password</span>
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm focus:border-ring focus:outline-none"
-            placeholder="At least 8 characters"
+          <rect
+            x="115"
+            y="54"
+            width="12"
+            height="72"
+            fill="url(#vcon_n_grad2_login)"
           />
-        </label>
+        </g>
+        <defs>
+          <linearGradient
+            id="vcon_n_grad1_login"
+            x1="109"
+            y1="116.5"
+            x2="144.5"
+            y2="160.5"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop stopColor="white" />
+            <stop offset="1" stopColor="white" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient
+            id="vcon_n_grad2_login"
+            x1="121"
+            y1="54"
+            x2="120.799"
+            y2="106.875"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop stopColor="white" />
+            <stop offset="1" stopColor="white" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+      </svg>
 
-        {error && (
-          <p className="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        {notice && (
-          <p className="rounded-md border border-success-border bg-success-soft px-3 py-2 text-sm text-success">
-            {notice}
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={busy}
-          className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
-        >
-          {busy ? "Working…" : mode === "signin" ? "Sign in" : "Create account"}
-        </button>
-      </form>
-
-      <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-        New accounts start as <strong>Creator</strong> with no workspace. Your workspace admin
-        assigns roles and workspace access — never through this form.
-      </p>
-
-      {DEMO_READY && (
-        <div className="mt-4 rounded-lg border border-primary/25 bg-accent/40 p-3.5">
-          <p className="text-xs font-semibold uppercase tracking-[0.06em] text-accent-foreground">
-            For judges
-          </p>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Explore the seeded <strong>GlowNaturals</strong> workspace instantly — findings,
-            review queue, and the full decision trail.
-          </p>
-          <DemoSignIn email={DEMO_EMAIL!} password={DEMO_PASSWORD!} />
+      <div className="flex flex-col">
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-bold tracking-tight text-foreground font-mono">
+            Vcon
+          </span>
+          <span className="rounded border border-border bg-secondary px-1.5 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground">
+            CORE
+          </span>
         </div>
-      )}
+        <span className="text-[11px] font-medium text-muted-foreground">
+          Compliance & Policy Gate Engine
+        </span>
+      </div>
     </div>
   );
 }
 
-function DemoSignIn({ email, password }: { email: string; password: string }) {
+export function LoginForm({ searchParams }: LoginFormProps) {
+  const params = use(searchParams);
   const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  async function demoSignIn() {
-    setBusy(true);
-    setError(null);
-    const { error } = await createClient().auth.signInWithPassword({ email: email.trim(), password: password.trim() });
-    if (error) {
-      setError(error.message);
-      setBusy(false);
-      return;
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(
+    params?.error ? decodeURIComponent(params.error) : null
+  );
+  const [infoMsg, setInfoMsg] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setIsLoading(true);
+    setErrorMsg(null);
+    setInfoMsg(null);
+
+    const supabase = createClient();
+    const cleanEmail = email.trim().toLowerCase();
+
+    try {
+      if (mode === "signin") {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+        if (error) throw error;
+        router.push("/items");
+        router.refresh();
+      } else {
+        // Try creating the account first
+        const { data, error } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+        });
+
+        // If the user already exists, seamlessly sign them in with their password
+        const alreadyExists =
+          error?.message?.toLowerCase().includes("already registered") ||
+          (data?.user && data.user.identities && data.user.identities.length === 0);
+
+        if (alreadyExists) {
+          const { error: signInErr } = await supabase.auth.signInWithPassword({
+            email: cleanEmail,
+            password,
+          });
+          if (signInErr) {
+            throw new Error(
+              "An account with this email already exists. Please enter your existing password to sign in."
+            );
+          }
+          router.push("/items");
+          router.refresh();
+          return;
+        }
+
+        if (error) throw error;
+
+        if (data.session) {
+          router.push("/items");
+          router.refresh();
+        } else {
+          // Fallback sign-in since our DB trigger auto-confirms users immediately
+          const { error: autoSignInErr } = await supabase.auth.signInWithPassword({
+            email: cleanEmail,
+            password,
+          });
+          if (!autoSignInErr) {
+            router.push("/items");
+            router.refresh();
+          }
+        }
+      }
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Authentication failed.";
+      setErrorMsg(message);
+    } finally {
+      setIsLoading(false);
     }
-    router.replace("/");
-    router.refresh();
   }
 
   return (
-    <div className="mt-2.5">
-      <button
-        type="button"
-        onClick={demoSignIn}
-        disabled={busy}
-        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20 disabled:opacity-60"
-      >
-        {busy ? "Signing in…" : "⚡ Try the demo"}
-      </button>
-      <p className="mt-2 break-all font-mono text-[10.5px] leading-relaxed text-muted-foreground">
-        {email} · {password}
-      </p>
-      {error && (
-        <p className="mt-1.5 text-xs text-destructive">{error}</p>
-      )}
+    <div className="min-h-screen grid lg:grid-cols-12 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+      {/* Left Pane: Product Architecture & Contributor Context */}
+      <div className="hidden lg:flex lg:col-span-5 flex-col justify-between border-r border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/40 p-10 xl:p-14">
+        <VconBrandMark />
+
+        <div className="space-y-6 my-auto max-w-md">
+          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/5 px-3 py-1 text-xs font-medium text-indigo-600 dark:text-indigo-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+            Hybrid Deterministic + LLM Evaluation
+          </div>
+
+          <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 leading-snug">
+            Pre-publication governance with an immutable audit trail.
+          </h1>
+
+          <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+            Vcon validates outbound copy against deterministic banned-term
+            boundaries, approved claim ledgers, and custom policy rules before
+            content ships.
+          </p>
+
+          <div className="grid grid-cols-2 gap-4 pt-5 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
+            <div className="space-y-1">
+              <p className="font-semibold text-zinc-900 dark:text-zinc-200 font-mono">
+                01 / Fast-Lane Checks
+              </p>
+              <p>Deterministic word-boundary & regex lexicons in milliseconds.</p>
+            </div>
+            <div className="space-y-1">
+              <p className="font-semibold text-zinc-900 dark:text-zinc-200 font-mono">
+                02 / Role Sign-Off
+              </p>
+              <p>Creator, Reviewer, and Approver state transitions with receipts.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 border-t border-zinc-200/60 dark:border-zinc-800/60 pt-4">
+          <span className="font-mono">CON-V / VCON ENGINE</span>
+          <span>Open-Source Governance Stack</span>
+        </div>
+      </div>
+
+      {/* Right Pane: Auth Card */}
+      <div className="lg:col-span-7 flex flex-col justify-center items-center p-6 sm:p-12">
+        <div className="w-full max-w-sm space-y-7">
+          <div className="lg:hidden">
+            <VconBrandMark />
+          </div>
+
+          <div className="space-y-1.5">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              {mode === "signin" ? "Sign in to Vcon" : "Create a workspace account"}
+            </h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              {mode === "signin"
+                ? "Enter your workspace credentials to access rulebooks and review queues."
+                : "New accounts start with Creator permissions until assigned by an admin."}
+            </p>
+          </div>
+
+          {/* Mode Switcher Tabs */}
+          <div className="grid grid-cols-2 rounded-lg bg-zinc-200/70 dark:bg-zinc-900 p-1 text-xs font-medium">
+            <button
+              type="button"
+              onClick={() => {
+                setMode("signin");
+                setErrorMsg(null);
+                setInfoMsg(null);
+              }}
+              className={`rounded-md py-2 transition-all ${
+                mode === "signin"
+                  ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm"
+                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+              }`}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("signup");
+                setErrorMsg(null);
+                setInfoMsg(null);
+              }}
+              className={`rounded-md py-2 transition-all ${
+                mode === "signup"
+                  ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm"
+                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+              }`}
+            >
+              Create account
+            </button>
+          </div>
+
+          {errorMsg && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-xs text-red-600 dark:text-red-400">
+              {errorMsg}
+            </div>
+          )}
+
+          {infoMsg && (
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-xs text-emerald-700 dark:text-emerald-400">
+              {infoMsg}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="email"
+                className="block text-xs font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Email address
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@organization.com"
+                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/15"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="password"
+                className="block text-xs font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                required
+                minLength={8}
+                autoComplete={
+                  mode === "signin" ? "current-password" : "new-password"
+                }
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Minimum 8 characters"
+                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/15"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full rounded-lg bg-zinc-900 dark:bg-zinc-100 px-4 py-2.5 text-sm font-medium text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              {isLoading
+                ? mode === "signin"
+                  ? "Signing in..."
+                  : "Creating account..."
+                : mode === "signin"
+                ? "Sign in to workspace"
+                : "Create account"}
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }
